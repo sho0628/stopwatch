@@ -54,10 +54,10 @@
   }
   #timer {
     font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
-    font-size: 20vw;
-    font-weight: 200;
+    font-size: 22vw;
+    font-weight: 100;
     line-height: 1;
-    letter-spacing: 0.01em;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
     white-space: nowrap;
@@ -75,22 +75,22 @@
   .btn {
     width: 86px; height: 86px;
     border-radius: 50%;
-    border: 1.5px solid transparent;
+    border: 2px solid currentColor;       /* visible ring in the button's tint */
     box-shadow: inset 0 0 0 3px #000;     /* black gap between fill and ring */
     font-size: 19px;
     font-weight: 400;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    background-clip: padding-box;
+    background-clip: padding-box;          /* fill stays inside the ring */
     transition: filter .08s;
   }
   .btn:active { filter: brightness(1.4); }
 
-  #leftBtn { background: var(--grey-fill); border-color: var(--grey-fill); color: var(--grey-text); }
+  #leftBtn { background: var(--grey-fill); border-color: rgba(214, 214, 218, 0.55); color: var(--grey-text); }
   #leftBtn.disabled { opacity: .5; pointer-events: none; }
 
-  #rightBtn.start { background: var(--green-fill); border-color: var(--green-fill); color: var(--green); }
-  #rightBtn.stop  { background: var(--red-fill);   border-color: var(--red-fill);   color: var(--red); }
+  #rightBtn.start { background: var(--green-fill); border-color: rgba(48, 209, 88, 0.9); color: var(--green); }
+  #rightBtn.stop  { background: var(--red-fill);   border-color: rgba(255, 69, 58, 0.9);  color: var(--red); }
 
   /* page indicator dots */
   .dots { display: flex; gap: 9px; }
@@ -119,7 +119,7 @@
     flex: 0 0 auto;
     display: flex;
     justify-content: center;
-    padding: 0 12px calc(env(safe-area-inset-bottom) * 0.14 + 4px);
+    padding: 0 12px 4px;
   }
   .tabwrap {
     width: 100%;
@@ -140,16 +140,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 5px 8px;
-    border-radius: 16px;
+    gap: 3px;
+    padding: 6px 11px;
+    border-radius: 18px;
     color: #fff;
     font-size: 10px;
     white-space: nowrap;
   }
   .tabinner svg { width: 25px; height: 25px; }
   .tab.active .tabinner {
-    background: rgba(120, 120, 128, 0.45);
+    background: rgba(142, 142, 147, 0.55);
     color: var(--orange);
   }
 
@@ -204,19 +204,19 @@
       </div>
       <div class="tab">
         <div class="tabinner">
-          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15.6" r="8.3"/><path d="M14 11.8v3.8l2.8 1.7"/><path d="M3.6 7.2 7.8 3.6"/><path d="M24.4 7.2 20.2 3.6"/><path d="M7.6 22.7 5.7 25.1"/><path d="M20.4 22.7 22.3 25.1"/></svg>
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15.8" r="7.6"/><path d="M14 12.4v3.4l2.4 1.4"/><path d="M3.6 9.1C3.2 6.4 4.8 4 7.4 3.2"/><path d="M24.4 9.1C24.8 6.4 23.2 4 20.6 3.2"/><path d="M8.6 22.6 6.7 24.9"/><path d="M19.4 22.6 21.3 24.9"/></svg>
           <span>アラーム</span>
         </div>
       </div>
       <div class="tab active">
         <div class="tabinner">
-          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="16" r="8.3"/><path d="M14 16 17.2 12.4"/><path d="M11.4 3.5h5.2"/><path d="M14 3.5v2.4"/><path d="M21.6 6.7 23.1 5.2"/></svg>
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="16.4" r="7.9"/><path d="M14 16.4 16.7 13.1"/><path d="M11.6 4h4.8"/><path d="M14 4v2.4"/><path d="M21.7 7 23.2 5.5"/></svg>
           <span>ストップウォッチ</span>
         </div>
       </div>
       <div class="tab">
         <div class="tabinner">
-          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15.6" r="9"/><path d="M14 15.6V9.9"/><path d="M11.2 3.6h5.6"/><path d="M14 3.6v2.4"/></svg>
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="16" r="8.4"/><path d="M14 16V10.2"/><path d="M9.6 3.5h8.8"/><path d="M14 5.9V3.5"/></svg>
           <span>タイマー</span>
         </div>
       </div>
