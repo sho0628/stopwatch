@@ -809,8 +809,8 @@
   // initial render
   renderClock();
 
-  // scroll amount = 15px (document is real viewport + 15px)
-  function fitDoc() { document.body.style.minHeight = (window.innerHeight + 15) + "px"; }
+  // scroll amount = 3px (document is real viewport + 3px)
+  function fitDoc() { document.body.style.minHeight = (window.innerHeight + 3) + "px"; }
   fitDoc();
   window.addEventListener("resize", fitDoc);
   window.addEventListener("orientationchange", function () { setTimeout(fitDoc, 120); });
