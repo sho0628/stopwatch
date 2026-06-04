@@ -808,6 +808,13 @@
 
   // initial render
   renderClock();
+
+  // keep the document just 1px taller than the real viewport: enough to stay a
+  // "scrollable document" (which unlocks the full-height viewport) but with no real scroll
+  function fitDoc() { document.body.style.minHeight = (window.innerHeight + 1) + "px"; }
+  fitDoc();
+  window.addEventListener("resize", fitDoc);
+  window.addEventListener("orientationchange", function () { setTimeout(fitDoc, 120); });
 })();
 </script>
 </body>
