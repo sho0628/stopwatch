@@ -206,8 +206,8 @@
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; justify-content: center;
-    /* floating capsule sits just above the home indicator, like the real iOS 26 Clock app */
-    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.18 + 4px);
+    /* sit flush at the very bottom edge (cover is active, as landscape proves) */
+    padding: 0 12px 4px;
   }
   .tabwrap {
     width: 100%; display: flex;
