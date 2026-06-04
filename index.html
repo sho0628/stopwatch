@@ -39,7 +39,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     color: #fff;
     position: relative;       /* normal-flow document → iOS gives the FULL-height viewport */
-    min-height: 100dvh;
+    min-height: calc(100dvh + 2px);   /* tiny overflow makes it a scrollable doc → full 852 viewport on add */
     overflow-x: hidden;
   }
 
