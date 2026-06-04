@@ -189,6 +189,7 @@
     height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
     text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
   }
+  #dbg { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 2px); left: 0; right: 0; text-align: center; font-size: 11px; color: #777; z-index: 100; pointer-events: none; }
   .wcol::-webkit-scrollbar { display: none; }
   .wcol .wi {
     height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
@@ -286,6 +287,7 @@
 </style>
 </head>
 <body>
+  <div id="dbg"></div>
 
   <!-- ===== World Clock ===== -->
   <section id="view-clock" class="view">
@@ -807,6 +809,22 @@
 
   // initial render
   renderClock();
+
+  // --- diagnostic readout (temporary) ---
+  function dbg() {
+    var probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;";
+    document.body.appendChild(probe);
+    var sab = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+    document.body.removeChild(probe);
+    var bar = document.querySelector(".tabbar").getBoundingClientRect();
+    var sh = window.screen ? window.screen.height : 0;
+    $("dbg").textContent = "v8  sab=" + Math.round(sab) + "  ih=" + window.innerHeight +
+      "  sh=" + sh + "  barBottom=" + Math.round(bar.bottom) + "  standalone=" + (window.navigator.standalone ? "Y" : "N");
+  }
+  dbg();
+  window.addEventListener("resize", dbg);
+  setTimeout(dbg, 600);
 })();
 </script>
 </body>
