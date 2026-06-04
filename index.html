@@ -2,12 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="時計">
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>時計</title>
@@ -188,7 +189,6 @@
     height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
     text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
   }
-  #dbg { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 2px); left: 0; right: 0; text-align: center; font-size: 11px; color: #777; z-index: 100; pointer-events: none; }
   .wcol::-webkit-scrollbar { display: none; }
   .wcol .wi {
     height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
@@ -205,16 +205,15 @@
   /* ===== Bottom tab bar ===== */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-    display: flex; justify-content: center;
-    /* floating capsule sitting just above the home-indicator strip, like the real Clock app */
-    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.2 + 5px);
+    display: flex;
+    /* full-width bar that blends with the black background, so the OS-reserved bottom
+       strip (un-paintable in portrait standalone) is no longer a visible black box */
+    background: rgba(8, 8, 8, 0.72);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    padding: 8px 4px max(env(safe-area-inset-bottom, 0px), 8px);
   }
-  .tabwrap {
-    width: 100%; display: flex;
-    background: rgba(40, 40, 43, 0.9); border: 0.5px solid rgba(255, 255, 255, 0.09);
-    border-radius: 30px; padding: 6px 5px;
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  }
+  .tabwrap { width: 100%; display: flex; }
   .tab { flex: 1; display: flex; justify-content: center; cursor: pointer; }
   .tabinner {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -288,7 +287,6 @@
 </style>
 </head>
 <body>
-  <div id="dbg"></div>
 
   <!-- ===== World Clock ===== -->
   <section id="view-clock" class="view">
@@ -810,19 +808,6 @@
 
   // initial render
   renderClock();
-
-  // --- diagnostic (temporary) ---
-  function dbg() {
-    var probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;";
-    document.body.appendChild(probe);
-    var sab = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
-    document.body.removeChild(probe);
-    var sh = window.screen ? window.screen.height : 0;
-    var vvh = window.visualViewport ? Math.round(window.visualViewport.height) : 0;
-    $("dbg").textContent = "v11 ih=" + window.innerHeight + " vvh=" + vvh + " sh=" + sh + " sab=" + Math.round(sab);
-  }
-  dbg(); window.addEventListener("resize", dbg); setTimeout(dbg, 600);
 })();
 </script>
 </body>
