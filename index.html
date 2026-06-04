@@ -54,7 +54,7 @@
   }
   #timer {
     font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
-    font-size: 18vw;
+    font-size: 20vw;
     font-weight: 200;
     line-height: 1;
     letter-spacing: 0.01em;
@@ -62,8 +62,6 @@
     font-feature-settings: "tnum";
     white-space: nowrap;
   }
-  #timer .dot { transition: color .25s; }
-  #timer.armed .dot { color: rgba(48, 209, 88, 0.9); }   /* performer-only cue */
 
   /* ===== Controls row ===== */
   .controls {
@@ -218,7 +216,7 @@
     </div>
     <div class="ov-hint">
       セットすると、次に「停止」した時に必ずこの数字が表示されます。<br>
-      アーム中は時計の「.」がうっすら緑になります（演者用の目印）。
+      通常の時計に戻すには「通常モード」を押してください。
     </div>
   </div>
 
@@ -253,7 +251,6 @@
     render(currentMs(), timerEl);
     if (running) rafId = requestAnimationFrame(tick);
   }
-  function setArmedCue() { timerEl.classList.toggle("armed", armed); }
 
   function updateButtons() {
     if (running) {
@@ -348,14 +345,14 @@
     });
   });
   document.getElementById("armBtn").addEventListener("click", function () {
-    forcedMs = entryToMs(entry || "0"); armed = true; setArmedCue(); closeOverlay();
+    forcedMs = entryToMs(entry || "0"); armed = true; closeOverlay();
   });
   document.getElementById("normalBtn").addEventListener("click", function () {
-    armed = false; setArmedCue(); closeOverlay();
+    armed = false; closeOverlay();
   });
   document.getElementById("closeBtn").addEventListener("click", closeOverlay);
 
-  render(0, timerEl); updateButtons(); setArmedCue();
+  render(0, timerEl); updateButtons();
 })();
 </script>
 </body>
