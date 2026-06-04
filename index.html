@@ -32,16 +32,15 @@
 
   html, body {
     height: 100%;
-    overflow: hidden;
     background: #000;
     overscroll-behavior: none;
-    touch-action: none;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     color: #fff;
-    position: fixed;
-    inset: 0;
+    position: relative;       /* normal-flow document → iOS gives the FULL-height viewport */
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 
   /* ===== Views ===== */
@@ -189,6 +188,7 @@
     height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
     text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
   }
+  #dbg { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 2px); left: 0; right: 0; text-align: center; font-size: 11px; color: #0a0; z-index: 100; pointer-events: none; }
   .wcol::-webkit-scrollbar { display: none; }
   .wcol .wi {
     height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
@@ -206,8 +206,8 @@
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; justify-content: center;
-    /* floating capsule, like the real iOS Clock app */
-    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.2 + 5px);
+    /* full-height document now reaches the real bottom; sit just above the edge */
+    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.18 + 4px);
   }
   .tabwrap {
     width: 100%; display: flex;
@@ -288,6 +288,7 @@
 </style>
 </head>
 <body>
+  <div id="dbg"></div>
 
   <!-- ===== World Clock ===== -->
   <section id="view-clock" class="view">
@@ -809,6 +810,18 @@
 
   // initial render
   renderClock();
+
+  // --- diagnostic (temporary) ---
+  function dbg() {
+    var p = document.createElement("div");
+    p.style.cssText = "position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;";
+    document.body.appendChild(p);
+    var sab = parseFloat(getComputedStyle(p).paddingBottom) || 0;
+    document.body.removeChild(p);
+    var vvh = window.visualViewport ? Math.round(window.visualViewport.height) : 0;
+    $("dbg").textContent = "ih=" + window.innerHeight + " vvh=" + vvh + " sh=" + (window.screen ? window.screen.height : 0) + " sab=" + Math.round(sab);
+  }
+  dbg(); window.addEventListener("resize", dbg); setTimeout(dbg, 600);
 })();
 </script>
 </body>
