@@ -207,9 +207,9 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; justify-content: center;
     padding: 0 12px 0;
-    /* iOS standalone places fixed bottom:0 above the home indicator;
-       nudge it down toward the edge, but keep the labels on-screen */
-    transform: translateY(max(env(safe-area-inset-bottom, 0px) - 22px, 0px));
+    /* iOS standalone parks fixed bottom:0 above the home indicator; nudge it down
+       to sit just above the edge like the real Clock app, without clipping labels */
+    transform: translateY(max(env(safe-area-inset-bottom, 0px) - 24px, 0px));
   }
   .tabwrap {
     width: 100%; display: flex;
