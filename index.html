@@ -206,8 +206,9 @@
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; justify-content: center;
-    /* sit flush at the very bottom edge (cover is active, as landscape proves) */
-    padding: 0 12px 4px;
+    padding: 0 12px 0;
+    /* push the capsule down past the home-indicator inset so it reaches the bottom edge */
+    transform: translateY(calc(env(safe-area-inset-bottom, 0px) * 0.3));
   }
   .tabwrap {
     width: 100%; display: flex;
@@ -218,7 +219,7 @@
   .tab { flex: 1; display: flex; justify-content: center; cursor: pointer; }
   .tabinner {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 7px 13px; border-radius: 26px; color: #fff; font-size: 10px; white-space: nowrap;
+    padding: 5px 13px 3px; border-radius: 26px; color: #fff; font-size: 10px; white-space: nowrap;
   }
   .tabinner svg { width: 25px; height: 25px; }
   .tab.active .tabinner { background: rgba(142, 142, 147, 0.55); color: var(--orange); }
