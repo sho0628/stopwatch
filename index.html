@@ -205,15 +205,16 @@
   /* ===== Bottom tab bar ===== */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-    display: flex;
-    /* full-width bar that blends with the black background, so the OS-reserved bottom
-       strip (un-paintable in portrait standalone) is no longer a visible black box */
-    background: rgba(8, 8, 8, 0.72);
-    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-    padding: 8px 4px max(env(safe-area-inset-bottom, 0px), 8px);
+    display: flex; justify-content: center;
+    /* floating capsule, like the real iOS Clock app */
+    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.2 + 5px);
   }
-  .tabwrap { width: 100%; display: flex; }
+  .tabwrap {
+    width: 100%; display: flex;
+    background: rgba(40, 40, 43, 0.9); border: 0.5px solid rgba(255, 255, 255, 0.09);
+    border-radius: 30px; padding: 6px 5px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
   .tab { flex: 1; display: flex; justify-content: center; cursor: pointer; }
   .tabinner {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
