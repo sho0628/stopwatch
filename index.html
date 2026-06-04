@@ -75,22 +75,20 @@
   .btn {
     width: 86px; height: 86px;
     border-radius: 50%;
-    border: 2px solid currentColor;       /* visible ring in the button's tint */
-    box-shadow: inset 0 0 0 3px #000;     /* black gap between fill and ring */
+    border: none;
     font-size: 19px;
     font-weight: 400;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    background-clip: padding-box;          /* fill stays inside the ring */
     transition: filter .08s;
   }
   .btn:active { filter: brightness(1.4); }
 
-  #leftBtn { background: var(--grey-fill); border-color: rgba(214, 214, 218, 0.55); color: var(--grey-text); }
+  #leftBtn { background: var(--grey-fill); color: var(--grey-text); }
   #leftBtn.disabled { opacity: .5; pointer-events: none; }
 
-  #rightBtn.start { background: var(--green-fill); border-color: rgba(48, 209, 88, 0.9); color: var(--green); }
-  #rightBtn.stop  { background: var(--red-fill);   border-color: rgba(255, 69, 58, 0.9);  color: var(--red); }
+  #rightBtn.start { background: var(--green-fill); color: var(--green); }
+  #rightBtn.stop  { background: var(--red-fill);   color: var(--red); }
 
   /* page indicator dots */
   .dots { display: flex; gap: 9px; }
