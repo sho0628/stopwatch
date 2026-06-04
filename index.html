@@ -808,6 +808,12 @@
 
   // initial render
   renderClock();
+
+  // scroll amount = 10px (document is real viewport + 10px)
+  function fitDoc() { document.body.style.minHeight = (window.innerHeight + 10) + "px"; }
+  fitDoc();
+  window.addEventListener("resize", fitDoc);
+  window.addEventListener("orientationchange", function () { setTimeout(fitDoc, 120); });
 })();
 </script>
 </body>
