@@ -147,11 +147,31 @@
   .switch input:checked + .slider::before { transform: translateX(20px); }
 
   /* ===== Timer ===== */
-  #view-timer .big-title { padding-bottom: 0; }
-  .tm-setup, .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  #view-timer .big-title { padding-bottom: 8px; }
+  .tm-setup {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 24px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+    padding: 6px 18px calc(120px + env(safe-area-inset-bottom));
+  }
+  .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
   .tm-setup[hidden], .tm-run[hidden] { display: none; }
-  .tm-controls { display: flex; justify-content: space-between; gap: 0; width: 100%; padding: 0 34px; }
+  .tm-controls { display: flex; justify-content: space-between; width: 100%; max-width: 360px; padding: 0 8px; }
   .tm-controls .btn { font-size: 15px; }
+  .tm-setup .wheel { margin-top: 4px; }
+  .tm-group { width: 100%; background: #2c2c2e; border-radius: 12px; overflow: hidden; }
+  .tm-group .field { background: none; border-radius: 0; margin: 0; padding: 14px 16px; }
+  .tm-group .field + .field { border-top: 0.5px solid rgba(255,255,255,0.13); }
+  .field .val { color: #8e8e93; font-size: 16px; }
+  #timerRecentsWrap { width: 100%; }
+  .section-title { width: 100%; font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .recent-row { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 2px; border-bottom: 0.5px solid rgba(255,255,255,0.12); }
+  .recent-row .rt { flex: 1; font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums; font-family: ui-rounded, system-ui, sans-serif; }
+  .recent-play { width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--green-fill); color: var(--green); font-size: 15px; cursor: pointer; }
+  .recent-del { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 18px; display: none; }
+  .tm-setup.editing .recent-del { display: inline-flex; align-items: center; justify-content: center; }
+  .tm-setup.editing .recent-play { display: none; }
+  .pill-btn { background: #2c2c2e; color: #fff; border: none; border-radius: 16px; padding: 6px 15px; font-size: 15px; cursor: pointer; }
+  .vhead button.pill-btn { color: #fff; }
   .tm-ring { position: relative; width: 78vw; max-width: 320px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
   .tm-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
   .tm-ring .trk { fill: none; stroke: #2a2a2c; stroke-width: 7; }
@@ -296,13 +316,21 @@
 
   <!-- ===== Timer ===== -->
   <section id="view-timer" class="view">
-    <div class="vhead"><span></span><span></span></div>
+    <div class="vhead"><button id="timerEdit" class="pill-btn">編集</button><span></span></div>
     <h1 class="big-title">タイマー</h1>
     <div class="tm-setup" id="timerSetup">
       <div class="wheel"><div class="wrow" id="timerCols"></div><div class="selbar"></div></div>
       <div class="tm-controls">
         <button class="btn" id="timerCancelSetup" disabled>キャンセル</button>
         <button class="btn start" id="timerStart">開始</button>
+      </div>
+      <div class="tm-group">
+        <div class="field"><label>ラベル</label><input type="text" id="timerLabel" placeholder="タイマー" maxlength="30"></div>
+        <div class="field" id="timerSoundRow"><label>タイマー終了時</label><span class="val" id="timerSoundVal">レーダー ›</span></div>
+      </div>
+      <div id="timerRecentsWrap" hidden>
+        <h2 class="section-title">最近の項目</h2>
+        <div id="timerRecents"></div>
       </div>
     </div>
     <div class="tm-run" id="timerRunning" hidden>
@@ -368,6 +396,14 @@
       <div class="sheet-head"><span></span><span class="t">都市を追加</span><button id="cityCloseBtn">閉じる</button></div>
       <input type="text" class="search" id="citySearch" placeholder="検索">
       <div id="cityResults"></div>
+    </div>
+  </div>
+
+  <!-- ===== Timer end-sound picker ===== -->
+  <div class="modal" id="soundSheet">
+    <div class="sheet">
+      <div class="sheet-head"><span></span><span class="t">タイマー終了時</span><button id="soundClose">完了</button></div>
+      <div id="soundList"></div>
     </div>
   </div>
 
@@ -704,18 +740,52 @@
     return h > 0 ? (h + ":" + pad(m) + ":" + pad(s)) : (m + ":" + pad(s));
   }
   function showTimerSetup(setup) { $("timerSetup").hidden = !setup; $("timerRunning").hidden = setup; }
-  function startTimer() {
-    var total = tH.getValue() * 3600 + tM.getValue() * 60 + tS.getValue();
+  function setWheelFromSec(total) { tH.setValue(Math.floor(total / 3600)); tM.setValue(Math.floor((total % 3600) / 60)); tS.setValue(total % 60); }
+  function startTimerWith(total) {
     if (total <= 0) return;
     timer.total = total; timer.remaining = total; timer.running = true; timer.endTs = Date.now() + total * 1000;
+    addRecent(total); $("timerPause").textContent = "一時停止";
     showTimerSetup(false); updateTimerUI();
   }
+  function startTimer() { startTimerWith(tH.getValue() * 3600 + tM.getValue() * 60 + tS.getValue()); }
   function pauseTimer() {
     if (timer.running) { timer.running = false; timer.remaining = Math.max(0, Math.ceil((timer.endTs - Date.now()) / 1000)); $("timerPause").textContent = "再開"; }
     else { timer.running = true; timer.endTs = Date.now() + timer.remaining * 1000; $("timerPause").textContent = "一時停止"; }
   }
   function cancelTimer() { timer.running = false; timer.remaining = 0; $("timerPause").textContent = "一時停止"; showTimerSetup(true); }
-  function finishTimer() { timer.running = false; timer.remaining = 0; updateTimerUI(); showTimerSetup(true); fireRing("タイマー", "0:00", false); }
+  function finishTimer() { timer.running = false; timer.remaining = 0; updateTimerUI(); showTimerSetup(true); fireRing($("timerLabel").value.trim() || "タイマー", "0:00", false); }
+
+  // recents
+  var recents = load("sw_recents", []);
+  function fmtDur(sec) { var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60; return h > 0 ? (h + ":" + pad(m) + ":" + pad(s)) : (m + ":" + pad(s)); }
+  function addRecent(sec) { recents = recents.filter(function (x) { return x !== sec; }); recents.unshift(sec); recents = recents.slice(0, 8); save("sw_recents", recents); renderRecents(); }
+  function renderRecents() {
+    $("timerRecentsWrap").hidden = recents.length === 0;
+    var wrap = $("timerRecents"); wrap.innerHTML = "";
+    recents.forEach(function (sec, idx) {
+      var row = document.createElement("div"); row.className = "recent-row";
+      row.innerHTML = '<span class="rt">' + fmtDur(sec) + '</span><button class="recent-del">−</button><button class="recent-play">▶</button>';
+      row.querySelector(".recent-play").addEventListener("click", function () { startTimerWith(sec); });
+      row.querySelector(".recent-del").addEventListener("click", function () { recents.splice(idx, 1); save("sw_recents", recents); renderRecents(); });
+      wrap.appendChild(row);
+    });
+  }
+  // edit mode (recents)
+  var timerEditing = false;
+  $("timerEdit").addEventListener("click", function () { timerEditing = !timerEditing; this.textContent = timerEditing ? "完了" : "編集"; $("timerSetup").classList.toggle("editing", timerEditing); });
+  // end-sound picker (cosmetic name; all play the same alert tone in a web app)
+  var SOUNDS = ["レーダー", "アポロ", "ビーコン", "電子音", "クラシック", "シルク", "木琴", "ベル"];
+  var timerSound = load("sw_timerSound", "レーダー");
+  $("timerSoundVal").textContent = timerSound + " ›";
+  function renderSounds() {
+    $("soundList").innerHTML = SOUNDS.map(function (s) { return '<div class="city-item" data-s="' + s + '">' + s + (s === timerSound ? " ✓" : "") + "</div>"; }).join("");
+    $("soundList").querySelectorAll(".city-item").forEach(function (el) {
+      el.addEventListener("click", function () { timerSound = el.getAttribute("data-s"); save("sw_timerSound", timerSound); $("timerSoundVal").textContent = timerSound + " ›"; $("soundSheet").classList.remove("show"); });
+    });
+  }
+  $("timerSoundRow").addEventListener("click", function () { renderSounds(); $("soundSheet").classList.add("show"); });
+  $("soundClose").addEventListener("click", function () { $("soundSheet").classList.remove("show"); });
+  renderRecents();
   function updateTimer() {
     if (!timer.running) return;
     timer.remaining = Math.max(0, Math.round((timer.endTs - Date.now()) / 1000));
