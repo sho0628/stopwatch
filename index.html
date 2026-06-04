@@ -210,8 +210,10 @@
     background: rgba(22, 22, 24, 0.96);
     border-top: 0.5px solid rgba(255, 255, 255, 0.10);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    /* background fills all the way to the screen edge → zero black gap */
+    /* the standalone layout viewport stops above the home indicator; pad the fill by the
+       inset AND shift the whole bar down by the inset so it covers the reserved zone */
     padding: 8px 4px env(safe-area-inset-bottom, 0px);
+    transform: translateY(env(safe-area-inset-bottom, 0px));
   }
   .tabwrap { width: 100%; display: flex; }
   .tab { flex: 1; display: flex; justify-content: center; cursor: pointer; }
@@ -819,7 +821,7 @@
     document.body.removeChild(probe);
     var bar = document.querySelector(".tabbar").getBoundingClientRect();
     var sh = window.screen ? window.screen.height : 0;
-    $("dbg").textContent = "v8  sab=" + Math.round(sab) + "  ih=" + window.innerHeight +
+    $("dbg").textContent = "v9  sab=" + Math.round(sab) + "  ih=" + window.innerHeight +
       "  sh=" + sh + "  barBottom=" + Math.round(bar.bottom) + "  standalone=" + (window.navigator.standalone ? "Y" : "N");
   }
   dbg();
