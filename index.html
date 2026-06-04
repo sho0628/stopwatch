@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>ストップウォッチ</title>
+<title>時計</title>
 <style>
   :root {
     --green: #30d158;
@@ -36,141 +36,222 @@
     overscroll-behavior: none;
     touch-action: none;
   }
-
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     color: #fff;
-    display: flex;
-    flex-direction: column;
     position: fixed;
     inset: 0;
-    height: auto;          /* let inset:0 stretch body to the true bottom (overrides height:100%) */
-    padding: env(safe-area-inset-top) 0 0;
   }
 
-  /* ===== Timer ===== */
-  .timer-area {
-    flex: 0 0 38%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* ===== Views ===== */
+  .view {
+    position: absolute; inset: 0;
+    padding-top: env(safe-area-inset-top);
+    display: none;
+    flex-direction: column;
   }
+  .view.active { display: flex; }
+
+  .vhead {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 18px 0; min-height: 30px;
+  }
+  .vhead button {
+    background: none; border: none; color: var(--orange);
+    font-size: 17px; cursor: pointer; padding: 4px 0;
+  }
+  .big-title { font-size: 34px; font-weight: 700; padding: 2px 18px 6px; }
+
+  .scroll {
+    flex: 1; overflow-y: auto;
+    padding: 0 18px calc(120px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  }
+  .empty-hint { color: #6a6a6e; font-size: 15px; text-align: center; margin-top: 60px; }
+
+  /* ===== Stopwatch view ===== */
+  .timer-area { flex: 0 0 38%; display: flex; align-items: center; justify-content: center; }
   #timer {
     font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
-    font-size: 22vw;
-    font-weight: 100;
-    line-height: 1;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-    white-space: nowrap;
+    font-size: 22vw; font-weight: 100; line-height: 1; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap;
   }
-
-  /* ===== Controls row ===== */
-  .controls {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 34px;
-  }
-
+  .controls { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
   .btn {
-    width: 86px; height: 86px;
-    border-radius: 50%;
-    border: none;
-    font-size: 19px;
-    font-weight: 400;
+    width: 86px; height: 86px; border-radius: 50%; border: none;
+    font-size: 19px; font-weight: 400;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: filter .08s;
+    cursor: pointer; transition: filter .08s; background: var(--grey-fill); color: var(--grey-text);
   }
   .btn:active { filter: brightness(1.4); }
-
-  #leftBtn { background: var(--grey-fill); color: var(--grey-text); }
-  #leftBtn.disabled { opacity: .5; pointer-events: none; }
-
-  #rightBtn.start { background: var(--green-fill); color: var(--green); }
-  #rightBtn.stop  { background: var(--red-fill);   color: var(--red); }
-
-  /* page indicator dots */
+  .btn:disabled { opacity: .4; pointer-events: none; }
+  .btn.disabled { opacity: .5; pointer-events: none; }
+  .btn.start { background: var(--green-fill); color: var(--green); }
+  .btn.stop  { background: var(--red-fill);   color: var(--red); }
+  .btn.pause { background: rgba(255,159,10,0.18); color: var(--orange); }
   .dots { display: flex; gap: 9px; }
   .dots span { width: 7px; height: 7px; border-radius: 50%; background: #5a5a5e; }
   .dots span.active { background: #fff; }
-
-  /* ===== Lap list ===== */
   .laps {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    margin: 22px 16px 0;
-    padding-bottom: 100px;     /* keep laps clear of the fixed tab bar */
+    flex: 1 1 auto; overflow-y: auto; margin: 22px 16px 0;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
     border-top: 0.5px solid rgba(255,255,255,0.22);
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
   .lap-row {
-    display: flex; justify-content: space-between;
-    padding: 13px 4px;
-    font-size: 17px;
-    border-bottom: 0.5px solid rgba(255,255,255,0.13);
+    display: flex; justify-content: space-between; padding: 13px 4px; font-size: 17px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.13); font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== World clock ===== */
+  .wc-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 0.5px solid rgba(255,255,255,0.13);
+  }
+  .wc-del {
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    background: var(--red); color: #fff; font-size: 20px; line-height: 1; display: none;
+    flex: 0 0 auto; cursor: pointer;
+  }
+  .editing .wc-del { display: flex; align-items: center; justify-content: center; }
+  .wc-main { flex: 1; min-width: 0; }
+  .wc-sub { font-size: 13px; color: #8e8e93; }
+  .wc-city { font-size: 23px; font-weight: 400; }
+  .wc-time {
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+    font-size: 42px; font-weight: 200; font-variant-numeric: tabular-nums; color: #fff;
+  }
+
+  /* ===== Alarm ===== */
+  .al-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 0.5px solid rgba(255,255,255,0.13);
+  }
+  .al-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .al-del {
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    background: var(--red); color: #fff; font-size: 20px; line-height: 1; display: none; flex: 0 0 auto;
+  }
+  .editing .al-del { display: flex; align-items: center; justify-content: center; }
+  .al-info { min-width: 0; }
+  .al-time { font-family: ui-rounded, system-ui, sans-serif; font-size: 40px; font-weight: 200; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .al-row.off .al-time, .al-row.off .al-label { color: #8e8e93; }
+  .al-label { font-size: 14px; color: #c7c7cc; }
+
+  /* iOS switch */
+  .switch { position: relative; width: 51px; height: 31px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #39393d; border-radius: 31px; transition: .25s; cursor: pointer; }
+  .slider::before { content: ""; position: absolute; width: 27px; height: 27px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: .25s; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .switch input:checked + .slider { background: var(--green); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* ===== Timer ===== */
+  #view-timer .big-title { padding-bottom: 0; }
+  .tm-setup, .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  .tm-setup[hidden], .tm-run[hidden] { display: none; }
+  .tm-controls { display: flex; justify-content: space-between; gap: 0; width: 100%; padding: 0 34px; }
+  .tm-controls .btn { font-size: 15px; }
+  .tm-ring { position: relative; width: 78vw; max-width: 320px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+  .tm-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .tm-ring .trk { fill: none; stroke: #2a2a2c; stroke-width: 7; }
+  .tm-ring .prg { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; }
+  .tm-remain {
+    font-family: ui-rounded, system-ui, sans-serif; font-size: 64px; font-weight: 200;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Wheel picker ===== */
+  .wheel { position: relative; height: 200px; width: 100%; }
+  .wrow { display: flex; align-items: center; justify-content: center; height: 200px; gap: 2px; }
+  .wcol {
+    height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
+    text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
+  }
+  .wcol::-webkit-scrollbar { display: none; }
+  .wcol .wi {
+    height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
+    font-variant-numeric: tabular-nums; color: #fff;
+    font-family: ui-rounded, system-ui, sans-serif;
+  }
+  .wcol .wpad { height: 80px; }
+  .wunit { font-size: 17px; color: #c7c7cc; padding: 0 2px; }
+  .wheel .selbar {
+    position: absolute; left: 8px; right: 8px; top: 80px; height: 40px;
+    background: rgba(120,120,128,0.16); border-radius: 9px; pointer-events: none;
   }
 
   /* ===== Bottom tab bar ===== */
   .tabbar {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 5;
-    display: flex;
-    justify-content: center;
-    padding: 0 12px calc(env(safe-area-inset-bottom) * 0.25 + 3px);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; justify-content: center;
+    padding: 0 12px 0;
   }
   .tabwrap {
-    width: 100%;
-    display: flex;
-    background: rgba(40, 40, 43, 0.9);
-    border: 0.5px solid rgba(255, 255, 255, 0.09);
-    border-radius: 30px;
-    padding: 6px 5px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    width: 100%; display: flex;
+    background: rgba(40, 40, 43, 0.9); border: 0.5px solid rgba(255, 255, 255, 0.09);
+    border-radius: 30px; padding: 6px 5px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   }
-  .tab {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-  }
+  .tab { flex: 1; display: flex; justify-content: center; cursor: pointer; }
   .tabinner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 7px 13px;
-    border-radius: 26px;
-    color: #fff;
-    font-size: 10px;
-    white-space: nowrap;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 13px; border-radius: 26px; color: #fff; font-size: 10px; white-space: nowrap;
   }
   .tabinner svg { width: 25px; height: 25px; }
-  .tab.active .tabinner {
-    background: rgba(142, 142, 147, 0.55);
-    color: var(--orange);
+  .tab.active .tabinner { background: rgba(142, 142, 147, 0.55); color: var(--orange); }
+
+  /* ===== Modals / sheets ===== */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; z-index: 30; align-items: flex-end; }
+  .modal.show { display: flex; }
+  .sheet {
+    width: 100%; background: #1c1c1e; border-radius: 16px 16px 0 0;
+    padding: 12px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 92%; overflow-y: auto;
   }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .sheet-head .t { font-size: 17px; font-weight: 600; }
+  .sheet-head button { background: none; border: none; color: var(--orange); font-size: 17px; cursor: pointer; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #2c2c2e; border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+  .field label { color: #fff; font-size: 16px; }
+  .field input[type=text] { flex: 1; background: none; border: none; color: #fff; font-size: 16px; text-align: right; outline: none; }
+  .days { display: flex; justify-content: space-between; gap: 6px; margin-top: 12px; }
+  .day {
+    flex: 1; aspect-ratio: 1; border-radius: 50%; border: none; background: #2c2c2e; color: #fff;
+    font-size: 15px; cursor: pointer;
+  }
+  .day.on { background: var(--orange); color: #000; }
+  .sheet-del { width: 100%; margin-top: 16px; padding: 13px; border: none; border-radius: 10px; background: #2c2c2e; color: var(--red); font-size: 16px; cursor: pointer; }
+  .sheet-colon { font-size: 30px; color: #fff; padding: 0 4px; }
+
+  /* search */
+  .search { width: 100%; background: #2c2c2e; border: none; border-radius: 10px; color: #fff; font-size: 16px; padding: 11px 14px; margin: 6px 0 10px; outline: none; }
+  .city-item { padding: 14px 4px; border-bottom: 0.5px solid rgba(255,255,255,0.12); font-size: 17px; cursor: pointer; }
+  .city-item:active { background: #2c2c2e; }
+
+  /* ===== Ring (alarm/timer fired) ===== */
+  #ring {
+    position: fixed; inset: 0; z-index: 40; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    background: rgba(0,0,0,0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 24px;
+  }
+  #ring.show { display: flex; }
+  #ringLabel { font-size: 26px; color: #fff; }
+  #ringTime { font-family: ui-rounded, system-ui, sans-serif; font-size: 76px; font-weight: 200; font-variant-numeric: tabular-nums; }
+  .ring-actions { display: flex; gap: 16px; margin-top: 10px; }
+  .ring-actions button { padding: 14px 30px; border: none; border-radius: 28px; font-size: 17px; font-weight: 500; cursor: pointer; }
+  #ringSnooze { background: #333; color: #fff; }
+  #ringStop { background: var(--orange); color: #000; }
 
   /* ===== Secret setup overlay ===== */
   #overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.93);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.93);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 20; padding: 24px;
+    display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50; padding: 24px;
   }
   #overlay.show { display: flex; }
   .ov-title { font-size: 15px; color: #8e8e93; margin-bottom: 10px; }
-  .ov-preview {
-    font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
-    font-size: 54px; font-weight: 200; font-variant-numeric: tabular-nums; margin-bottom: 22px;
-  }
+  .ov-preview { font-family: ui-rounded, system-ui, sans-serif; font-size: 54px; font-weight: 200; font-variant-numeric: tabular-nums; margin-bottom: 22px; }
   .ov-preview .dot { color: var(--green); }
   .keypad { display: grid; grid-template-columns: repeat(3, 74px); gap: 16px; margin-bottom: 24px; }
   .key { width: 74px; height: 74px; border-radius: 50%; background: #1c1c1e; color: #fff; font-size: 30px; font-weight: 300; border: none; cursor: pointer; }
@@ -186,39 +267,78 @@
 </head>
 <body>
 
-  <div class="timer-area">
-    <div id="timer"><span class="num">00:00</span><span class="dot">.</span><span class="cs">00</span></div>
-  </div>
+  <!-- ===== World Clock ===== -->
+  <section id="view-clock" class="view">
+    <div class="vhead"><button id="clockEdit">編集</button><button id="clockAdd">＋</button></div>
+    <h1 class="big-title">世界時計</h1>
+    <div class="scroll" id="clockList"></div>
+  </section>
 
-  <div class="controls">
-    <button id="leftBtn" class="btn disabled">ラップ</button>
-    <div class="dots"><span class="active"></span><span></span></div>
-    <button id="rightBtn" class="btn start">開始</button>
-  </div>
+  <!-- ===== Alarm ===== -->
+  <section id="view-alarm" class="view">
+    <div class="vhead"><button id="alarmEdit">編集</button><button id="alarmAdd">＋</button></div>
+    <h1 class="big-title">アラーム</h1>
+    <div class="scroll" id="alarmList"></div>
+  </section>
 
-  <div class="laps" id="laps"></div>
+  <!-- ===== Stopwatch ===== -->
+  <section id="view-stopwatch" class="view active">
+    <div class="timer-area">
+      <div id="timer"><span class="num">00:00</span><span class="dot">.</span><span class="cs">00</span></div>
+    </div>
+    <div class="controls">
+      <button id="leftBtn" class="btn disabled">ラップ</button>
+      <div class="dots"><span></span><span class="active"></span></div>
+      <button id="rightBtn" class="btn start">開始</button>
+    </div>
+    <div class="laps" id="laps"></div>
+  </section>
 
+  <!-- ===== Timer ===== -->
+  <section id="view-timer" class="view">
+    <div class="vhead"><span></span><span></span></div>
+    <h1 class="big-title">タイマー</h1>
+    <div class="tm-setup" id="timerSetup">
+      <div class="wheel"><div class="wrow" id="timerCols"></div><div class="selbar"></div></div>
+      <div class="tm-controls">
+        <button class="btn" id="timerCancelSetup" disabled>キャンセル</button>
+        <button class="btn start" id="timerStart">開始</button>
+      </div>
+    </div>
+    <div class="tm-run" id="timerRunning" hidden>
+      <div class="tm-ring">
+        <svg viewBox="0 0 300 300"><circle class="trk" cx="150" cy="150" r="140"/><circle class="prg" id="timerProg" cx="150" cy="150" r="140"/></svg>
+        <div class="tm-remain" id="timerRemain">0:00</div>
+      </div>
+      <div class="tm-controls">
+        <button class="btn" id="timerCancel">キャンセル</button>
+        <button class="btn pause" id="timerPause">一時停止</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Tab bar ===== -->
   <nav class="tabbar">
     <div class="tabwrap">
-      <div class="tab">
+      <div class="tab" data-view="clock">
         <div class="tabinner">
           <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="14" cy="14" r="10.5"/><ellipse cx="14" cy="14" rx="4.3" ry="10.5"/><path d="M3.7 14h20.6"/><path d="M5.9 8.5h16.2"/><path d="M5.9 19.5h16.2"/></svg>
           <span>世界時計</span>
         </div>
       </div>
-      <div class="tab">
+      <div class="tab" data-view="alarm">
         <div class="tabinner">
           <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15.8" r="7.6"/><path d="M14 12.4v3.4l2.4 1.4"/><path d="M3.6 9.1C3.2 6.4 4.8 4 7.4 3.2"/><path d="M24.4 9.1C24.8 6.4 23.2 4 20.6 3.2"/><path d="M8.6 22.6 6.7 24.9"/><path d="M19.4 22.6 21.3 24.9"/></svg>
           <span>アラーム</span>
         </div>
       </div>
-      <div class="tab active">
+      <div class="tab active" data-view="stopwatch">
         <div class="tabinner">
           <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="16.4" r="7.9"/><path d="M14 16.4 16.7 13.1"/><path d="M11.6 4h4.8"/><path d="M14 4v2.4"/><path d="M21.7 7 23.2 5.5"/></svg>
           <span>ストップウォッチ</span>
         </div>
       </div>
-      <div class="tab">
+      <div class="tab" data-view="timer">
         <div class="tabinner">
           <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="16" r="8.4"/><path d="M14 16V10.2"/><path d="M9.6 3.5h8.8"/><path d="M14 5.9V3.5"/></svg>
           <span>タイマー</span>
@@ -227,168 +347,396 @@
     </div>
   </nav>
 
-  <!-- Secret setup (long-press the timer to open) -->
+  <!-- ===== Alarm edit sheet ===== -->
+  <div class="modal" id="alarmSheet">
+    <div class="sheet">
+      <div class="sheet-head">
+        <button id="alarmCancelBtn">キャンセル</button>
+        <span class="t">アラーム</span>
+        <button id="alarmSaveBtn">保存</button>
+      </div>
+      <div class="wheel"><div class="wrow" id="alarmCols"></div><div class="selbar"></div></div>
+      <div class="field"><label>ラベル</label><input type="text" id="alarmLabel" placeholder="アラーム" maxlength="30"></div>
+      <div class="days" id="alarmDays"></div>
+      <button class="sheet-del" id="alarmDeleteBtn" style="display:none">アラームを削除</button>
+    </div>
+  </div>
+
+  <!-- ===== City picker ===== -->
+  <div class="modal" id="citySheet">
+    <div class="sheet">
+      <div class="sheet-head"><span></span><span class="t">都市を追加</span><button id="cityCloseBtn">閉じる</button></div>
+      <input type="text" class="search" id="citySearch" placeholder="検索">
+      <div id="cityResults"></div>
+    </div>
+  </div>
+
+  <!-- ===== Ring overlay ===== -->
+  <div id="ring">
+    <div id="ringLabel">アラーム</div>
+    <div id="ringTime">0:00</div>
+    <div class="ring-actions">
+      <button id="ringSnooze">スヌーズ</button>
+      <button id="ringStop">停止</button>
+    </div>
+  </div>
+
+  <!-- ===== Secret setup overlay (long-press the stopwatch numbers) ===== -->
   <div id="overlay">
     <div class="ov-title">強制する数字をセット　（右から MM:SS.CC）</div>
     <div class="ov-preview"><span class="num">00:00</span><span class="dot">.</span><span class="cs">00</span></div>
     <div class="keypad">
-      <button class="key" data-k="1">1</button>
-      <button class="key" data-k="2">2</button>
-      <button class="key" data-k="3">3</button>
-      <button class="key" data-k="4">4</button>
-      <button class="key" data-k="5">5</button>
-      <button class="key" data-k="6">6</button>
-      <button class="key" data-k="7">7</button>
-      <button class="key" data-k="8">8</button>
-      <button class="key" data-k="9">9</button>
-      <button class="key fn" data-k="clear">クリア</button>
-      <button class="key" data-k="0">0</button>
-      <button class="key fn" data-k="back">⌫</button>
+      <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
+      <button class="key fn" data-k="clear">クリア</button><button class="key" data-k="0">0</button><button class="key fn" data-k="back">⌫</button>
     </div>
     <div class="ov-actions">
       <button class="ov-btn arm" id="armBtn">セット（仕込む）</button>
       <button class="ov-btn normal" id="normalBtn">通常モード</button>
       <button class="ov-btn close" id="closeBtn">閉じる</button>
     </div>
-    <div class="ov-hint">
-      セットすると、次に「停止」した時に必ずこの数字が表示されます。<br>
-      通常の時計に戻すには「通常モード」を押してください。
-    </div>
+    <div class="ov-hint">セットすると、次に「停止」した時に必ずこの数字が表示されます。<br>通常の時計に戻すには「通常モード」を押してください。</div>
   </div>
 
 <script>
 (function () {
   "use strict";
-
-  var running = false, elapsed = 0, startTs = 0;
-  var armed = false, forcedMs = 0;
-  var laps = [], lastLapAt = 0, rafId = null;
-
-  var timerEl = document.getElementById("timer");
-  var leftBtn = document.getElementById("leftBtn");
-  var rightBtn = document.getElementById("rightBtn");
-  var lapsEl = document.getElementById("laps");
-  var overlay = document.getElementById("overlay");
-
+  var $ = function (id) { return document.getElementById(id); };
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
-  function parts(ms) {
-    var totalCs = Math.floor(ms / 10);
-    var cs = totalCs % 100, totalSec = Math.floor(totalCs / 100);
-    return { min: Math.floor(totalSec / 60), sec: totalSec % 60, cs: cs };
-  }
-  function render(ms, el) {
-    var p = parts(ms);
-    el.querySelector(".num").textContent = pad(p.min) + ":" + pad(p.sec);
-    el.querySelector(".cs").textContent = pad(p.cs);
-  }
-  function currentMs() { return running ? elapsed + (performance.now() - startTs) : elapsed; }
+  var LS = window.localStorage;
+  function load(k, d) { try { var v = LS.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function save(k, v) { try { LS.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
-  function tick() {
-    render(currentMs(), timerEl);
-    if (running) rafId = requestAnimationFrame(tick);
+  /* ============================================================= TAB NAV */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  function showView(name) {
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+    $("view-" + name).classList.add("active");
+    tabs.forEach(function (t) { t.classList.toggle("active", t.getAttribute("data-view") === name); });
+    if (name === "clock") { renderClock(); updateClocks(); }
+    if (name === "alarm") renderAlarms();
   }
-
-  function updateButtons() {
-    if (running) {
-      rightBtn.textContent = "停止"; rightBtn.className = "btn stop";
-      leftBtn.textContent = "ラップ"; leftBtn.classList.remove("disabled");
-    } else if (elapsed > 0) {
-      rightBtn.textContent = "開始"; rightBtn.className = "btn start";
-      leftBtn.textContent = "リセット"; leftBtn.classList.remove("disabled");
-    } else {
-      rightBtn.textContent = "開始"; rightBtn.className = "btn start";
-      leftBtn.textContent = "ラップ"; leftBtn.classList.add("disabled");
-    }
-  }
-
-  function start() {
-    running = true; startTs = performance.now();
-    updateButtons(); tick();
-  }
-  function stop() {
-    running = false;
-    if (rafId) cancelAnimationFrame(rafId);
-    elapsed += performance.now() - startTs;
-    if (armed) elapsed = forcedMs;          // === THE FORCE ===
-    render(elapsed, timerEl);
-    updateButtons();
-  }
-  function reset() {
-    running = false;
-    if (rafId) cancelAnimationFrame(rafId);
-    elapsed = 0; laps = []; lastLapAt = 0;
-    renderLaps(); render(0, timerEl); updateButtons();
-  }
-  function lap() {
-    var now = currentMs();
-    laps.push(now - lastLapAt); lastLapAt = now;
-    renderLaps();
-  }
-  function renderLaps() {
-    var html = "";
-    for (var i = laps.length - 1; i >= 0; i--) {
-      var p = parts(laps[i]);
-      html += '<div class="lap-row"><span>ラップ ' + (i + 1) + '</span><span>' +
-              pad(p.min) + ":" + pad(p.sec) + "." + pad(p.cs) + "</span></div>";
-    }
-    lapsEl.innerHTML = html;
-  }
-
-  rightBtn.addEventListener("click", function () { if (running) stop(); else start(); });
-  leftBtn.addEventListener("click", function () {
-    if (leftBtn.classList.contains("disabled")) return;
-    if (running) lap(); else reset();
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () { unlockAudio(); showView(t.getAttribute("data-view")); });
   });
 
-  // secret long-press to open setup
-  var pressTimer = null;
-  function startPress() { pressTimer = setTimeout(openOverlay, 650); }
-  function cancelPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
-  timerEl.addEventListener("touchstart", startPress, { passive: true });
-  timerEl.addEventListener("touchend", cancelPress);
-  timerEl.addEventListener("touchmove", cancelPress);
-  timerEl.addEventListener("mousedown", startPress);
-  timerEl.addEventListener("mouseup", cancelPress);
-  timerEl.addEventListener("mouseleave", cancelPress);
-
-  // setup overlay
-  var entry = "";
-  var preview = overlay.querySelector(".ov-preview");
-  function entryToMs(str) {
-    var d = ("000000" + str).slice(-6);
-    return (parseInt(d.slice(0, 2), 10) * 60 + parseInt(d.slice(2, 4), 10)) * 1000 +
-           parseInt(d.slice(4, 6), 10) * 10;
+  /* ============================================================= AUDIO */
+  var ac = null, beepTimer = null;
+  function unlockAudio() {
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    if (ac && ac.state === "suspended") ac.resume();
   }
-  function renderPreview() { render(entryToMs(entry || "0"), preview); }
-  function openOverlay() {
-    cancelPress();
-    if (armed && forcedMs > 0) {
-      var p = parts(forcedMs);
-      entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, "");
-    } else { entry = ""; }
-    renderPreview();
-    overlay.classList.add("show");
+  document.addEventListener("touchend", unlockAudio, { passive: true });
+  function startBeep() {
+    stopBeep(); unlockAudio(); if (!ac) return;
+    var doBeep = function () {
+      var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.frequency.value = 880; o.type = "sine"; o.connect(g); g.connect(ac.destination);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.4, t + 0.02);
+      g.gain.linearRampToValueAtTime(0, t + 0.45); o.start(t); o.stop(t + 0.47);
+    };
+    doBeep(); beepTimer = setInterval(doBeep, 850);
   }
-  function closeOverlay() { overlay.classList.remove("show"); }
+  function stopBeep() { if (beepTimer) { clearInterval(beepTimer); beepTimer = null; } }
 
-  overlay.querySelectorAll(".key").forEach(function (k) {
-    k.addEventListener("click", function () {
-      var v = k.getAttribute("data-k");
-      if (v === "clear") entry = "";
-      else if (v === "back") entry = entry.slice(0, -1);
-      else if (entry.length < 6) entry = (entry + v).replace(/^0+/, "");
-      renderPreview();
+  /* ============================================================= WHEEL PICKER */
+  function makeColumn(count, fmt, width) {
+    var col = document.createElement("div");
+    col.className = "wcol"; col.style.width = width + "px";
+    var top = document.createElement("div"); top.className = "wpad"; col.appendChild(top);
+    for (var i = 0; i < count; i++) {
+      var it = document.createElement("div"); it.className = "wi"; it.textContent = fmt(i); col.appendChild(it);
+    }
+    var bot = document.createElement("div"); bot.className = "wpad"; col.appendChild(bot);
+    col.getValue = function () { return Math.max(0, Math.min(count - 1, Math.round(col.scrollTop / 40))); };
+    col.setValue = function (v) { col.scrollTop = v * 40; };
+    return col;
+  }
+  function unitLabel(txt) { var s = document.createElement("span"); s.className = "wunit"; s.textContent = txt; return s; }
+
+  /* ============================================================= STOPWATCH (+ magic) */
+  (function () {
+    var running = false, elapsed = 0, startTs = 0, armed = false, forcedMs = 0;
+    var laps = [], lastLapAt = 0, rafId = null;
+    var timerEl = $("timer"), leftBtn = $("leftBtn"), rightBtn = $("rightBtn"), lapsEl = $("laps"), overlay = $("overlay");
+
+    function partsCs(ms) { var c = Math.floor(ms / 10), cs = c % 100, s = Math.floor(c / 100); return { min: Math.floor(s / 60), sec: s % 60, cs: cs }; }
+    function render(ms, el) { var p = partsCs(ms); el.querySelector(".num").textContent = pad(p.min) + ":" + pad(p.sec); el.querySelector(".cs").textContent = pad(p.cs); }
+    function currentMs() { return running ? elapsed + (performance.now() - startTs) : elapsed; }
+    function tick() { render(currentMs(), timerEl); if (running) rafId = requestAnimationFrame(tick); }
+
+    function updateButtons() {
+      if (running) { rightBtn.textContent = "停止"; rightBtn.className = "btn stop"; leftBtn.textContent = "ラップ"; leftBtn.classList.remove("disabled"); }
+      else if (elapsed > 0) { rightBtn.textContent = "開始"; rightBtn.className = "btn start"; leftBtn.textContent = "リセット"; leftBtn.classList.remove("disabled"); }
+      else { rightBtn.textContent = "開始"; rightBtn.className = "btn start"; leftBtn.textContent = "ラップ"; leftBtn.classList.add("disabled"); }
+    }
+    function startSW() { running = true; startTs = performance.now(); updateButtons(); tick(); }
+    function stopSW() {
+      running = false; if (rafId) cancelAnimationFrame(rafId);
+      elapsed += performance.now() - startTs;
+      if (armed) elapsed = forcedMs;            // === THE FORCE ===
+      render(elapsed, timerEl); updateButtons();
+    }
+    function resetSW() { running = false; if (rafId) cancelAnimationFrame(rafId); elapsed = 0; laps = []; lastLapAt = 0; renderLaps(); render(0, timerEl); updateButtons(); }
+    function lap() { var now = currentMs(); laps.push(now - lastLapAt); lastLapAt = now; renderLaps(); }
+    function renderLaps() {
+      var h = "";
+      for (var i = laps.length - 1; i >= 0; i--) { var p = partsCs(laps[i]); h += '<div class="lap-row"><span>ラップ ' + (i + 1) + '</span><span>' + pad(p.min) + ":" + pad(p.sec) + "." + pad(p.cs) + "</span></div>"; }
+      lapsEl.innerHTML = h;
+    }
+    rightBtn.addEventListener("click", function () { if (running) stopSW(); else startSW(); });
+    leftBtn.addEventListener("click", function () { if (leftBtn.classList.contains("disabled")) return; if (running) lap(); else resetSW(); });
+
+    // secret long-press
+    var pressTimer = null;
+    function startPress() { pressTimer = setTimeout(openOverlay, 650); }
+    function cancelPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
+    timerEl.addEventListener("touchstart", startPress, { passive: true });
+    timerEl.addEventListener("touchend", cancelPress);
+    timerEl.addEventListener("touchmove", cancelPress);
+    timerEl.addEventListener("mousedown", startPress);
+    timerEl.addEventListener("mouseup", cancelPress);
+    timerEl.addEventListener("mouseleave", cancelPress);
+
+    var entry = "", preview = overlay.querySelector(".ov-preview");
+    function entryToMs(s) { var d = ("000000" + s).slice(-6); return (parseInt(d.slice(0, 2), 10) * 60 + parseInt(d.slice(2, 4), 10)) * 1000 + parseInt(d.slice(4, 6), 10) * 10; }
+    function renderPreview() { render(entryToMs(entry || "0"), preview); }
+    function openOverlay() { cancelPress(); if (armed && forcedMs > 0) { var p = partsCs(forcedMs); entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, ""); } else entry = ""; renderPreview(); overlay.classList.add("show"); }
+    function closeOverlay() { overlay.classList.remove("show"); }
+    overlay.querySelectorAll(".key").forEach(function (k) {
+      k.addEventListener("click", function () {
+        var v = k.getAttribute("data-k");
+        if (v === "clear") entry = ""; else if (v === "back") entry = entry.slice(0, -1);
+        else if (entry.length < 6) entry = (entry + v).replace(/^0+/, ""); renderPreview();
+      });
     });
-  });
-  document.getElementById("armBtn").addEventListener("click", function () {
-    forcedMs = entryToMs(entry || "0"); armed = true; closeOverlay();
-  });
-  document.getElementById("normalBtn").addEventListener("click", function () {
-    armed = false; closeOverlay();
-  });
-  document.getElementById("closeBtn").addEventListener("click", closeOverlay);
+    $("armBtn").addEventListener("click", function () { forcedMs = entryToMs(entry || "0"); armed = true; closeOverlay(); });
+    $("normalBtn").addEventListener("click", function () { armed = false; closeOverlay(); });
+    $("closeBtn").addEventListener("click", closeOverlay);
 
-  render(0, timerEl); updateButtons();
+    render(0, timerEl); updateButtons();
+  })();
+
+  /* ============================================================= WORLD CLOCK */
+  var CITIES = [
+    ["東京", "Asia/Tokyo"], ["ソウル", "Asia/Seoul"], ["北京", "Asia/Shanghai"], ["香港", "Asia/Hong_Kong"],
+    ["台北", "Asia/Taipei"], ["シンガポール", "Asia/Singapore"], ["バンコク", "Asia/Bangkok"], ["ジャカルタ", "Asia/Jakarta"],
+    ["ニューデリー", "Asia/Kolkata"], ["ドバイ", "Asia/Dubai"], ["モスクワ", "Europe/Moscow"], ["イスタンブール", "Europe/Istanbul"],
+    ["アテネ", "Europe/Athens"], ["ローマ", "Europe/Rome"], ["パリ", "Europe/Paris"], ["ベルリン", "Europe/Berlin"],
+    ["マドリード", "Europe/Madrid"], ["ロンドン", "Europe/London"], ["リスボン", "Europe/Lisbon"], ["レイキャビク", "Atlantic/Reykjavik"],
+    ["カイロ", "Africa/Cairo"], ["ヨハネスブルグ", "Africa/Johannesburg"], ["サンパウロ", "America/Sao_Paulo"],
+    ["ブエノスアイレス", "America/Argentina/Buenos_Aires"], ["ニューヨーク", "America/New_York"], ["トロント", "America/Toronto"],
+    ["シカゴ", "America/Chicago"], ["メキシコシティ", "America/Mexico_City"], ["デンバー", "America/Denver"],
+    ["ロサンゼルス", "America/Los_Angeles"], ["バンクーバー", "America/Vancouver"], ["アンカレッジ", "America/Anchorage"],
+    ["ホノルル", "Pacific/Honolulu"], ["シドニー", "Australia/Sydney"], ["メルボルン", "Australia/Melbourne"], ["オークランド", "Pacific/Auckland"]
+  ];
+  var localTz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Asia/Tokyo";
+  var cities = load("sw_cities", [["東京", "Asia/Tokyo"], ["ニューヨーク", "America/New_York"], ["ロンドン", "Europe/London"]]);
+  var clockEditing = false;
+
+  function tzParts(tz, d) {
+    var p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      .formatToParts(d || new Date()).reduce(function (a, x) { a[x.type] = x.value; return a; }, {});
+    return p;
+  }
+  function offsetMin(tz) { var d = new Date(), p = tzParts(tz, d); var asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second); return Math.round((asUTC - d.getTime()) / 60000); }
+  function timeInTz(tz) { var p = tzParts(tz); return p.hour + ":" + p.minute; }
+  function subLabel(tz) {
+    var pc = tzParts(tz), pl = tzParts(localTz);
+    var dc = Date.UTC(+pc.year, +pc.month - 1, +pc.day), dl = Date.UTC(+pl.year, +pl.month - 1, +pl.day);
+    var dd = Math.round((dc - dl) / 86400000);
+    var dl2 = dd === 0 ? "今日" : (dd > 0 ? "明日" : "昨日");
+    var dh = (offsetMin(tz) - offsetMin(localTz)) / 60;
+    var abs = Math.abs(dh); var num = (abs % 1 === 0) ? abs : abs.toFixed(1);
+    var hs = (dh < 0 ? "-" : "+") + num + "時間";
+    return dl2 + "、" + hs;
+  }
+  function renderClock() {
+    var list = $("clockList");
+    list.classList.toggle("editing", clockEditing);
+    if (!cities.length) { list.innerHTML = '<div class="empty-hint">右上の＋で都市を追加</div>'; return; }
+    var h = "";
+    cities.forEach(function (c, i) {
+      h += '<div class="wc-row" data-tz="' + c[1] + '">' +
+             '<button class="wc-del" data-i="' + i + '">−</button>' +
+             '<div class="wc-main"><div class="wc-sub">' + subLabel(c[1]) + '</div><div class="wc-city">' + c[0] + '</div></div>' +
+             '<div class="wc-time">' + timeInTz(c[1]) + '</div></div>';
+    });
+    list.innerHTML = h;
+    list.querySelectorAll(".wc-del").forEach(function (b) {
+      b.addEventListener("click", function () { cities.splice(+b.getAttribute("data-i"), 1); save("sw_cities", cities); renderClock(); });
+    });
+  }
+  function updateClocks() {
+    document.querySelectorAll("#clockList .wc-row").forEach(function (row) {
+      var tz = row.getAttribute("data-tz");
+      row.querySelector(".wc-time").textContent = timeInTz(tz);
+      row.querySelector(".wc-sub").textContent = subLabel(tz);
+    });
+  }
+  $("clockEdit").addEventListener("click", function () { clockEditing = !clockEditing; this.textContent = clockEditing ? "完了" : "編集"; renderClock(); });
+  // city picker
+  function openCity() {
+    $("citySearch").value = ""; renderCityResults(""); $("citySheet").classList.add("show");
+  }
+  function renderCityResults(q) {
+    q = q.trim();
+    var res = CITIES.filter(function (c) { return !q || c[0].indexOf(q) >= 0 || c[1].toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    $("cityResults").innerHTML = res.map(function (c) { return '<div class="city-item" data-tz="' + c[1] + '" data-n="' + c[0] + '">' + c[0] + '</div>'; }).join("");
+    $("cityResults").querySelectorAll(".city-item").forEach(function (el) {
+      el.addEventListener("click", function () {
+        cities.push([el.getAttribute("data-n"), el.getAttribute("data-tz")]);
+        save("sw_cities", cities); $("citySheet").classList.remove("show"); renderClock();
+      });
+    });
+  }
+  $("clockAdd").addEventListener("click", openCity);
+  $("cityCloseBtn").addEventListener("click", function () { $("citySheet").classList.remove("show"); });
+  $("citySearch").addEventListener("input", function () { renderCityResults(this.value); });
+
+  /* ============================================================= ALARM */
+  var alarms = load("sw_alarms", []);
+  var alarmEditing = false, editingId = null, repeatSel = [];
+  var DOW = ["日", "月", "火", "水", "木", "金", "土"];
+  // build alarm wheel
+  var alarmH = makeColumn(24, function (i) { return pad(i); }, 56);
+  var alarmM = makeColumn(60, function (i) { return pad(i); }, 56);
+  (function () {
+    var row = $("alarmCols");
+    row.appendChild(alarmH); var c = document.createElement("span"); c.className = "sheet-colon"; c.textContent = ":"; row.appendChild(c); row.appendChild(alarmM);
+  })();
+  // day chips
+  (function () {
+    var d = $("alarmDays");
+    DOW.forEach(function (n, i) { var b = document.createElement("button"); b.className = "day"; b.textContent = n; b.addEventListener("click", function () { var k = repeatSel.indexOf(i); if (k >= 0) repeatSel.splice(k, 1); else repeatSel.push(i); b.classList.toggle("on"); }); d.appendChild(b); });
+  })();
+
+  function renderAlarms() {
+    var list = $("alarmList");
+    list.classList.toggle("editing", alarmEditing);
+    if (!alarms.length) { list.innerHTML = '<div class="empty-hint">右上の＋でアラームを追加</div>'; return; }
+    list.innerHTML = "";
+    alarms.forEach(function (a) {
+      var row = document.createElement("div");
+      row.className = "al-row" + (a.enabled ? "" : " off");
+      var rep = a.repeat && a.repeat.length ? a.repeat.slice().sort().map(function (i) { return DOW[i]; }).join("・") : "繰り返しなし";
+      row.innerHTML =
+        '<div class="al-left"><button class="al-del">−</button>' +
+        '<div class="al-info"><div class="al-time">' + a.h + ":" + pad(a.m) + '</div><div class="al-label">' + (a.label || "アラーム") + " ・ " + rep + '</div></div></div>' +
+        '<label class="switch"><input type="checkbox" ' + (a.enabled ? "checked" : "") + '><span class="slider"></span></label>';
+      row.querySelector(".switch input").addEventListener("change", function () { a.enabled = this.checked; save("sw_alarms", alarms); row.classList.toggle("off", !a.enabled); });
+      row.querySelector(".al-del").addEventListener("click", function () { alarms = alarms.filter(function (x) { return x.id !== a.id; }); save("sw_alarms", alarms); renderAlarms(); });
+      row.querySelector(".al-info").addEventListener("click", function () { if (!alarmEditing) openAlarmSheet(a); });
+      list.appendChild(row);
+    });
+  }
+  function openAlarmSheet(a) {
+    var now = new Date();
+    editingId = a ? a.id : null;
+    repeatSel = a && a.repeat ? a.repeat.slice() : [];
+    $("alarmLabel").value = a ? (a.label || "") : "";
+    $("alarmDeleteBtn").style.display = a ? "block" : "none";
+    Array.prototype.forEach.call($("alarmDays").children, function (b, i) { b.classList.toggle("on", repeatSel.indexOf(i) >= 0); });
+    $("alarmSheet").classList.add("show");
+    var hh = a ? a.h : now.getHours(), mm = a ? a.m : now.getMinutes();
+    setTimeout(function () { alarmH.setValue(hh); alarmM.setValue(mm); }, 30);
+  }
+  $("alarmAdd").addEventListener("click", function () { openAlarmSheet(null); });
+  $("alarmCancelBtn").addEventListener("click", function () { $("alarmSheet").classList.remove("show"); });
+  $("alarmDeleteBtn").addEventListener("click", function () { if (editingId != null) { alarms = alarms.filter(function (x) { return x.id !== editingId; }); save("sw_alarms", alarms); } $("alarmSheet").classList.remove("show"); renderAlarms(); });
+  $("alarmSaveBtn").addEventListener("click", function () {
+    var h = alarmH.getValue(), m = alarmM.getValue(), label = $("alarmLabel").value.trim();
+    if (editingId != null) {
+      alarms.forEach(function (a) { if (a.id === editingId) { a.h = h; a.m = m; a.label = label; a.repeat = repeatSel.slice(); a.enabled = true; a.lastKey = ""; } });
+    } else {
+      alarms.push({ id: Date.now(), h: h, m: m, label: label, enabled: true, repeat: repeatSel.slice(), lastKey: "" });
+    }
+    save("sw_alarms", alarms); $("alarmSheet").classList.remove("show"); renderAlarms();
+  });
+  $("alarmEdit").addEventListener("click", function () { alarmEditing = !alarmEditing; this.textContent = alarmEditing ? "完了" : "編集"; renderAlarms(); });
+
+  function checkAlarms() {
+    var now = new Date();
+    var key = now.getFullYear() + "-" + now.getMonth() + "-" + now.getDate() + "-" + now.getHours() + "-" + now.getMinutes();
+    var changed = false;
+    alarms.forEach(function (a) {
+      if (!a.enabled) return;
+      if (a.h === now.getHours() && a.m === now.getMinutes() && a.lastKey !== key) {
+        if (a.repeat && a.repeat.length && a.repeat.indexOf(now.getDay()) < 0) return;
+        a.lastKey = key;
+        if (!a.repeat || !a.repeat.length) a.enabled = false;
+        changed = true; fireRing(a.label || "アラーム", a.h + ":" + pad(a.m), true);
+      }
+    });
+    if (changed) { save("sw_alarms", alarms); renderAlarms(); }
+  }
+
+  /* ============================================================= RING (alarm/timer fired) */
+  var snoozeData = null;
+  function fireRing(label, timeStr, snooze) {
+    $("ringLabel").textContent = label; $("ringTime").textContent = timeStr;
+    $("ringSnooze").style.display = snooze ? "block" : "none";
+    snoozeData = snooze ? { label: label, time: timeStr } : null;
+    $("ring").classList.add("show"); startBeep();
+    if (navigator.vibrate) try { navigator.vibrate([400, 200, 400, 200, 400]); } catch (e) {}
+  }
+  $("ringStop").addEventListener("click", function () { stopBeep(); $("ring").classList.remove("show"); });
+  $("ringSnooze").addEventListener("click", function () {
+    stopBeep(); $("ring").classList.remove("show");
+    if (snoozeData) { var d = snoozeData; setTimeout(function () { fireRing(d.label, d.time, true); }, 9 * 60 * 1000); }
+  });
+
+  /* ============================================================= TIMER */
+  var timer = { total: 0, remaining: 0, running: false, endTs: 0 };
+  var tH = makeColumn(24, function (i) { return i; }, 44), tM = makeColumn(60, function (i) { return i; }, 44), tS = makeColumn(60, function (i) { return i; }, 44);
+  (function () {
+    var row = $("timerCols");
+    row.appendChild(tH); row.appendChild(unitLabel("時間"));
+    row.appendChild(tM); row.appendChild(unitLabel("分"));
+    row.appendChild(tS); row.appendChild(unitLabel("秒"));
+    setTimeout(function () { tH.setValue(0); tM.setValue(5); tS.setValue(0); }, 30);
+  })();
+  var CIRC = 2 * Math.PI * 140;
+  $("timerProg").style.strokeDasharray = CIRC;
+  function fmtRemain(sec) {
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return h > 0 ? (h + ":" + pad(m) + ":" + pad(s)) : (m + ":" + pad(s));
+  }
+  function showTimerSetup(setup) { $("timerSetup").hidden = !setup; $("timerRunning").hidden = setup; }
+  function startTimer() {
+    var total = tH.getValue() * 3600 + tM.getValue() * 60 + tS.getValue();
+    if (total <= 0) return;
+    timer.total = total; timer.remaining = total; timer.running = true; timer.endTs = Date.now() + total * 1000;
+    showTimerSetup(false); updateTimerUI();
+  }
+  function pauseTimer() {
+    if (timer.running) { timer.running = false; timer.remaining = Math.max(0, Math.ceil((timer.endTs - Date.now()) / 1000)); $("timerPause").textContent = "再開"; }
+    else { timer.running = true; timer.endTs = Date.now() + timer.remaining * 1000; $("timerPause").textContent = "一時停止"; }
+  }
+  function cancelTimer() { timer.running = false; timer.remaining = 0; $("timerPause").textContent = "一時停止"; showTimerSetup(true); }
+  function finishTimer() { timer.running = false; timer.remaining = 0; updateTimerUI(); showTimerSetup(true); fireRing("タイマー", "0:00", false); }
+  function updateTimer() {
+    if (!timer.running) return;
+    timer.remaining = Math.max(0, Math.round((timer.endTs - Date.now()) / 1000));
+    if (timer.remaining <= 0) { updateTimerUI(); finishTimer(); return; }
+    updateTimerUI();
+  }
+  function updateTimerUI() {
+    $("timerRemain").textContent = fmtRemain(timer.remaining);
+    var frac = timer.total ? timer.remaining / timer.total : 0;
+    $("timerProg").style.strokeDashoffset = CIRC * (1 - frac);
+  }
+  $("timerStart").addEventListener("click", startTimer);
+  $("timerPause").addEventListener("click", pauseTimer);
+  $("timerCancel").addEventListener("click", cancelTimer);
+
+  /* ============================================================= MASTER TICK */
+  function masterTick() { updateClocks(); checkAlarms(); updateTimer(); }
+  setInterval(masterTick, 1000);
+
+  // initial render
+  renderClock();
 })();
 </script>
 </body>
