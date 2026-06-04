@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -819,7 +819,8 @@
     var sab = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
     document.body.removeChild(probe);
     var sh = window.screen ? window.screen.height : 0;
-    $("dbg").textContent = "v10 ih=" + window.innerHeight + " sh=" + sh + " sab=" + Math.round(sab) + " sa=" + (window.navigator.standalone ? "Y" : "N");
+    var vvh = window.visualViewport ? Math.round(window.visualViewport.height) : 0;
+    $("dbg").textContent = "v11 ih=" + window.innerHeight + " vvh=" + vvh + " sh=" + sh + " sab=" + Math.round(sab);
   }
   dbg(); window.addEventListener("resize", dbg); setTimeout(dbg, 600);
 })();
