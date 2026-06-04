@@ -103,6 +103,7 @@
     flex: 1 1 auto;
     overflow-y: auto;
     margin: 22px 16px 0;
+    padding-bottom: 100px;     /* keep laps clear of the fixed tab bar */
     border-top: 0.5px solid rgba(255,255,255,0.22);
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
@@ -117,10 +118,12 @@
 
   /* ===== Bottom tab bar ===== */
   .tabbar {
-    flex: 0 0 auto;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 5;
     display: flex;
     justify-content: center;
-    padding: 0 12px calc(env(safe-area-inset-bottom) * 0.4 + 2px);
+    padding: 0 12px calc(env(safe-area-inset-bottom) * 0.25 + 3px);
   }
   .tabwrap {
     width: 100%;
