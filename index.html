@@ -89,7 +89,7 @@
   .btn.start { background: var(--green-fill); color: var(--green); }
   .btn.stop  { background: var(--red-fill);   color: var(--red); }
   .btn.pause { background: rgba(255,159,10,0.18); color: var(--orange); }
-  .dots { display: flex; gap: 9px; }
+  .dots { display: flex; gap: 9px; padding: 22px 26px; margin: -22px -26px; cursor: pointer; }
   .dots span { width: 7px; height: 7px; border-radius: 50%; background: #5a5a5e; }
   .dots span.active { background: #fff; }
   .laps {
@@ -420,7 +420,7 @@
 
   <!-- ===== Secret setup overlay (long-press the stopwatch numbers) ===== -->
   <div id="overlay">
-    <div class="ov-title">強制する数字をセット　（右から MM:SS.CC）</div>
+    <div class="ov-title">表示させるタイムを保存　（右から MM:SS.CC）</div>
     <div class="ov-preview"><span class="num">00:00</span><span class="dot">.</span><span class="cs">00</span></div>
     <div class="keypad">
       <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
@@ -429,11 +429,11 @@
       <button class="key fn" data-k="clear">クリア</button><button class="key" data-k="0">0</button><button class="key fn" data-k="back">⌫</button>
     </div>
     <div class="ov-actions">
-      <button class="ov-btn arm" id="armBtn">セット（仕込む）</button>
-      <button class="ov-btn normal" id="normalBtn">通常モード</button>
+      <button class="ov-btn arm" id="armBtn">保存</button>
+      <button class="ov-btn normal" id="normalBtn">仕込み解除</button>
       <button class="ov-btn close" id="closeBtn">閉じる</button>
     </div>
-    <div class="ov-hint">セットすると、次に「停止」した時に必ずこの数字が表示されます。<br>通常の時計に戻すには「通常モード」を押してください。</div>
+    <div class="ov-hint">保存しただけでは普通のストップウォッチのままです。<br>「開始」「ラップ」の間の <b>• •</b> をタップすると仕込みON（白い点が左に移動）。<br>次の1回の「停止」だけ保存したタイムが表示され、その後は自動で通常に戻ります。</div>
   </div>
 
 <script>
@@ -494,7 +494,9 @@
 
   /* ============================================================= STOPWATCH (+ magic) */
   (function () {
-    var running = false, elapsed = 0, startTs = 0, armed = false, forcedMs = 0;
+    var running = false, elapsed = 0, startTs = 0, armed = false;
+    var forcedMs = load("sw_force", 0);     // saved time (persists); arming is separate
+    var dotsEl = document.querySelector("#view-stopwatch .dots");
     var laps = [], lastLapAt = 0, rafId = null;
     var timerEl = $("timer"), leftBtn = $("leftBtn"), rightBtn = $("rightBtn"), lapsEl = $("laps"), overlay = $("overlay");
 
@@ -512,7 +514,7 @@
     function stopSW() {
       running = false; if (rafId) cancelAnimationFrame(rafId);
       elapsed += performance.now() - startTs;
-      if (armed) elapsed = forcedMs;            // === THE FORCE ===
+      if (armed && forcedMs > 0) { elapsed = forcedMs; setArmed(false); }   // === THE FORCE (one shot) ===
       render(elapsed, timerEl); updateButtons();
     }
     function resetSW() { running = false; if (rafId) cancelAnimationFrame(rafId); elapsed = 0; laps = []; lastLapAt = 0; renderLaps(); render(0, timerEl); updateButtons(); }
@@ -539,7 +541,7 @@
     var entry = "", preview = overlay.querySelector(".ov-preview");
     function entryToMs(s) { var d = ("000000" + s).slice(-6); return (parseInt(d.slice(0, 2), 10) * 60 + parseInt(d.slice(2, 4), 10)) * 1000 + parseInt(d.slice(4, 6), 10) * 10; }
     function renderPreview() { render(entryToMs(entry || "0"), preview); }
-    function openOverlay() { cancelPress(); if (armed && forcedMs > 0) { var p = partsCs(forcedMs); entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, ""); } else entry = ""; renderPreview(); overlay.classList.add("show"); }
+    function openOverlay() { cancelPress(); if (forcedMs > 0) { var p = partsCs(forcedMs); entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, ""); } else entry = ""; renderPreview(); overlay.classList.add("show"); }
     function closeOverlay() { overlay.classList.remove("show"); }
     overlay.querySelectorAll(".key").forEach(function (k) {
       k.addEventListener("click", function () {
@@ -548,8 +550,17 @@
         else if (entry.length < 6) entry = (entry + v).replace(/^0+/, ""); renderPreview();
       });
     });
-    $("armBtn").addEventListener("click", function () { forcedMs = entryToMs(entry || "0"); armed = true; closeOverlay(); });
-    $("normalBtn").addEventListener("click", function () { armed = false; closeOverlay(); });
+    $("armBtn").addEventListener("click", function () { forcedMs = entryToMs(entry || "0"); save("sw_force", forcedMs); closeOverlay(); });
+    $("normalBtn").addEventListener("click", function () { setArmed(false); closeOverlay(); });
+
+    // hidden switch: tap the page dots → arm for the next stop (performer cue: white dot moves left)
+    function setArmed(on) {
+      armed = !!on;
+      var d = dotsEl.children;
+      d[0].classList.toggle("active", armed);
+      d[1].classList.toggle("active", !armed);
+    }
+    dotsEl.addEventListener("click", function () { if (forcedMs > 0) setArmed(!armed); });
     $("closeBtn").addEventListener("click", closeOverlay);
 
     render(0, timerEl); updateButtons();
