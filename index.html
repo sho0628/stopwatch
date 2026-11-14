@@ -831,7 +831,17 @@
   /* Register the service worker for offline use */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () {});
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
+        // check for a new version whenever the app is brought back to the foreground
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") reg.update().catch(function () {});
+        });
+      }).catch(function () {});
+      // a new version took over → reload once to show it
+      var reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (reloaded) return; reloaded = true; location.reload();
+      });
     });
   }
 </script>
