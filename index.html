@@ -98,6 +98,8 @@
     border-top: 0.5px solid rgba(255,255,255,0.22);
     -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
+  .lap-row.fast { color: var(--green); }
+  .lap-row.slow { color: var(--red); }
   .lap-row {
     display: flex; justify-content: space-between; padding: 13px 4px; font-size: 17px;
     border-bottom: 0.5px solid rgba(255,255,255,0.13); font-variant-numeric: tabular-nums;
@@ -503,25 +505,45 @@
     function partsCs(ms) { var c = Math.floor(ms / 10), cs = c % 100, s = Math.floor(c / 100); return { min: Math.floor(s / 60), sec: s % 60, cs: cs }; }
     function render(ms, el) { var p = partsCs(ms); el.querySelector(".num").textContent = pad(p.min) + ":" + pad(p.sec); el.querySelector(".cs").textContent = pad(p.cs); }
     function currentMs() { return running ? elapsed + (performance.now() - startTs) : elapsed; }
-    function tick() { render(currentMs(), timerEl); if (running) rafId = requestAnimationFrame(tick); }
+    function tick() {
+      var now = currentMs();
+      render(now, timerEl);
+      var cur = document.getElementById("curLap");
+      if (cur) cur.textContent = fmtLap(now - lastLapAt);
+      if (running) rafId = requestAnimationFrame(tick);
+    }
 
     function updateButtons() {
       if (running) { rightBtn.textContent = "停止"; rightBtn.className = "btn stop"; leftBtn.textContent = "ラップ"; leftBtn.classList.remove("disabled"); }
       else if (elapsed > 0) { rightBtn.textContent = "開始"; rightBtn.className = "btn start"; leftBtn.textContent = "リセット"; leftBtn.classList.remove("disabled"); }
       else { rightBtn.textContent = "開始"; rightBtn.className = "btn start"; leftBtn.textContent = "ラップ"; leftBtn.classList.add("disabled"); }
     }
-    function startSW() { running = true; startTs = performance.now(); updateButtons(); tick(); }
+    function startSW() { running = true; startTs = performance.now(); updateButtons(); renderLaps(); tick(); }
     function stopSW() {
       running = false; if (rafId) cancelAnimationFrame(rafId);
       elapsed += performance.now() - startTs;
       if (armed && forcedMs > 0) { elapsed = forcedMs; setArmed(false); }   // === THE FORCE (one shot) ===
-      render(elapsed, timerEl); updateButtons();
+      render(elapsed, timerEl); updateButtons(); renderLaps();
     }
     function resetSW() { running = false; if (rafId) cancelAnimationFrame(rafId); elapsed = 0; laps = []; lastLapAt = 0; renderLaps(); render(0, timerEl); updateButtons(); }
     function lap() { var now = currentMs(); laps.push(now - lastLapAt); lastLapAt = now; renderLaps(); }
+    function fmtLap(ms) { var p = partsCs(Math.max(0, ms)); return pad(p.min) + ":" + pad(p.sec) + "." + pad(p.cs); }
+    // iOS style: the running lap is always the top row ("ラップ N" ticking live),
+    // completed laps below it; fastest = green, slowest = red once 2+ laps are done.
     function renderLaps() {
       var h = "";
-      for (var i = laps.length - 1; i >= 0; i--) { var p = partsCs(laps[i]); h += '<div class="lap-row"><span>ラップ ' + (i + 1) + '</span><span>' + pad(p.min) + ":" + pad(p.sec) + "." + pad(p.cs) + "</span></div>"; }
+      if (running || elapsed > 0) {
+        h += '<div class="lap-row"><span>ラップ ' + (laps.length + 1) + '</span><span id="curLap">' + fmtLap(currentMs() - lastLapAt) + "</span></div>";
+      }
+      var minI = -1, maxI = -1;
+      if (laps.length >= 2) {
+        minI = 0; maxI = 0;
+        for (var j = 1; j < laps.length; j++) { if (laps[j] < laps[minI]) minI = j; if (laps[j] > laps[maxI]) maxI = j; }
+      }
+      for (var i = laps.length - 1; i >= 0; i--) {
+        var cls = i === minI ? " fast" : (i === maxI ? " slow" : "");
+        h += '<div class="lap-row' + cls + '"><span>ラップ ' + (i + 1) + '</span><span>' + fmtLap(laps[i]) + "</span></div>";
+      }
       lapsEl.innerHTML = h;
     }
     rightBtn.addEventListener("click", function () { if (running) stopSW(); else startSW(); });
