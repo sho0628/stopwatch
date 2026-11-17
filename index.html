@@ -34,7 +34,7 @@
     height: 100%;
     background: #000;
     overscroll-behavior: none;
-    touch-action: pan-y;      /* no double-tap / pinch zoom (iOS ignores user-scalable=no) */
+    touch-action: none;       /* the page itself never moves: no double-tap / pinch / pull */
   }
   button, .tab, .dots { touch-action: manipulation; }
   body {
@@ -229,6 +229,7 @@
   /* ===== Modals / sheets ===== */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; z-index: 30; align-items: flex-end; }
   .modal.show { display: flex; }
+  .sheet { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
   .sheet {
     width: 100%; background: #1c1c1e; border-radius: 16px 16px 0 0;
     padding: 12px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 92%; overflow-y: auto;
@@ -862,6 +863,12 @@
 })();
 </script>
 <script>
+  /* iOS: the page itself must never be dragged; only these areas may scroll */
+  var SCROLLABLE = ".scroll, .laps, .wcol, .tm-setup, .sheet";
+  document.addEventListener("touchmove", function (e) {
+    if (!e.target.closest || !e.target.closest(SCROLLABLE)) e.preventDefault();
+  }, { passive: false });
+
   /* iOS: stop pinch-zoom gestures */
   document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
 
