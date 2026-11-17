@@ -230,6 +230,7 @@
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; z-index: 30; align-items: flex-end; }
   .modal.show { display: flex; }
   .sheet { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+  .scroll, .laps, .wcol, .tm-setup, .sheet { overscroll-behavior: contain; }
   .sheet {
     width: 100%; background: #1c1c1e; border-radius: 16px 16px 0 0;
     padding: 12px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 92%; overflow-y: auto;
@@ -566,8 +567,14 @@
     var entry = "", preview = overlay.querySelector(".ov-preview");
     function entryToMs(s) { var d = ("000000" + s).slice(-6); return (parseInt(d.slice(0, 2), 10) * 60 + parseInt(d.slice(2, 4), 10)) * 1000 + parseInt(d.slice(4, 6), 10) * 10; }
     function renderPreview() { render(entryToMs(entry || "0"), preview); }
-    function openOverlay() { cancelPress(); if (forcedMs > 0) { var p = partsCs(forcedMs); entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, ""); } else entry = ""; renderPreview(); overlay.classList.add("show"); }
+    function openOverlay() { cancelPress(); if (forcedMs > 0) { var p = partsCs(forcedMs); entry = ("" + pad(p.min) + pad(p.sec) + pad(p.cs)).replace(/^0+/, ""); } else entry = ""; renderPreview(); overlay.classList.add("show"); overlayOpenedAt = Date.now(); }
     function closeOverlay() { overlay.classList.remove("show"); }
+    // the finger that long-pressed is still down when the panel appears; ignore the
+    // tap it produces when lifted so it doesn't type a digit / press a button by accident
+    var overlayOpenedAt = 0;
+    overlay.addEventListener("click", function (e) {
+      if (Date.now() - overlayOpenedAt < 450) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
     overlay.querySelectorAll(".key").forEach(function (k) {
       k.addEventListener("click", function () {
         var v = k.getAttribute("data-k");
@@ -866,7 +873,20 @@
   /* iOS: the page itself must never be dragged; only these areas may scroll */
   var SCROLLABLE = ".scroll, .laps, .wcol, .tm-setup, .sheet";
   document.addEventListener("touchmove", function (e) {
-    if (!e.target.closest || !e.target.closest(SCROLLABLE)) e.preventDefault();
+    var area = e.target.closest ? e.target.closest(SCROLLABLE) : null;
+    // allow the drag only where there is actually something to scroll
+    if (!area || area.scrollHeight <= area.clientHeight + 1) e.preventDefault();
+  }, { passive: false });
+
+  /* iOS: a double-tap on empty space nudges the page. Swallow the 2nd tap there.
+     Buttons and other controls are left alone so quick start/stop still works. */
+  var TAPPABLE = "button, input, label, select, a, .tab, .dots, .key, .day, .switch, .city-item, .al-info, .recent-row, .wc-row";
+  var lastTapEnd = 0;
+  document.addEventListener("touchend", function (e) {
+    var now = Date.now();
+    var onControl = e.target.closest && e.target.closest(TAPPABLE);
+    if (!onControl && now - lastTapEnd < 350 && e.touches.length === 0) e.preventDefault();
+    lastTapEnd = now;
   }, { passive: false });
 
   /* iOS: stop pinch-zoom gestures */
