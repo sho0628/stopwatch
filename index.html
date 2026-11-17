@@ -192,6 +192,7 @@
     height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
     text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
   }
+  #dbg { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 2px); left: 0; right: 0; text-align: center; font-size: 11px; color: #0c0; z-index: 100; pointer-events: none; white-space: pre; line-height: 1.4; }
   .wcol::-webkit-scrollbar { display: none; }
   .wcol .wi {
     height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
@@ -291,6 +292,7 @@
 </style>
 </head>
 <body>
+  <div id="dbg"></div>
 
   <!-- ===== World Clock ===== -->
   <section id="view-clock" class="view">
@@ -852,6 +854,23 @@
 })();
 </script>
 <script>
+  /* --- diagnostic (temporary): shows how far the page moved --- */
+  (function () {
+    var el = document.getElementById("dbg"), maxY = 0, maxOff = 0, maxScale = 1;
+    function show() {
+      var vv = window.visualViewport || { offsetTop: 0, scale: 1, height: 0 };
+      var sy = Math.round(window.scrollY);
+      maxY = Math.max(maxY, Math.abs(sy)); maxOff = Math.max(maxOff, Math.abs(Math.round(vv.offsetTop)));
+      maxScale = Math.max(maxScale, vv.scale);
+      el.textContent = "scrollY=" + sy + " vvTop=" + Math.round(vv.offsetTop) + " scale=" + vv.scale.toFixed(2) +
+        " ih=" + window.innerHeight + " bodyH=" + document.body.scrollHeight +
+        "\nMAX scrollY=" + maxY + " vvTop=" + maxOff + " scale=" + maxScale.toFixed(2);
+    }
+    window.addEventListener("scroll", show);
+    if (window.visualViewport) { visualViewport.addEventListener("scroll", show); visualViewport.addEventListener("resize", show); }
+    setInterval(show, 100); show();
+  })();
+
   /* iOS: stop pinch-zoom gestures */
   document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
 
