@@ -112,6 +112,9 @@
   .btn.start { background: var(--green-fill); color: var(--green); }
   .btn.stop  { background: var(--red-fill);   color: var(--red); }
   .btn.pause { background: rgba(255,159,10,0.18); color: var(--orange); }
+  /* invisible larger tap area around the stopwatch buttons (kept clear of the centre dots) */
+  .controls .btn { position: relative; }
+  .controls .btn::before { content: ""; position: absolute; top: -26px; bottom: -26px; left: -22px; right: -22px; border-radius: 40px; }
   .dots { display: flex; gap: 9px; padding: 22px 26px; margin: -22px -26px; cursor: pointer; }
   .dots span { width: 7px; height: 7px; border-radius: 50%; background: #5a5a5e; }
   .dots span.active { background: #fff; }
@@ -573,8 +576,15 @@
       }
       lapsEl.innerHTML = h;
     }
-    rightBtn.addEventListener("click", function () { if (running) stopSW(); else startSW(); });
-    leftBtn.addEventListener("click", function () { if (leftBtn.classList.contains("disabled")) return; if (running) lap(); else resetSW(); });
+    // react the instant the finger touches (not on release), so a slightly sliding tap
+    // still counts and the stop time is more precise; click is kept for mouse input
+    function bindPress(btn, fn) {
+      var lastTouch = 0;
+      btn.addEventListener("touchstart", function (e) { e.preventDefault(); lastTouch = Date.now(); fn(); }, { passive: false });
+      btn.addEventListener("click", function () { if (Date.now() - lastTouch < 800) return; fn(); });
+    }
+    bindPress(rightBtn, function () { if (running) stopSW(); else startSW(); });
+    bindPress(leftBtn, function () { if (leftBtn.classList.contains("disabled")) return; if (running) lap(); else resetSW(); });
 
     // secret long-press
     var pressTimer = null;
