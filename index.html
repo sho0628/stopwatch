@@ -14,6 +14,10 @@
 <title>時計</title>
 <style>
   :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --vw: 1vw;
+    --vh: 1vh;
     --green: #30d158;
     --green-fill: #0c4a23;
     --red: #ff453a;
@@ -45,10 +49,27 @@
     overflow-x: hidden;
   }
 
+  /* ===== Keep the app portrait when the phone is turned sideways =====
+     iOS ignores the manifest orientation for home-screen apps, so when the phone is in
+     landscape the whole app is rotated back by 90° and laid out at portrait size. */
+  html.rot-ccw, html.rot-cw {
+    --vw: 1vh; --vh: 1vw;
+    --sat: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --sab: 0px;
+    overflow: hidden;
+  }
+  html.rot-ccw body, html.rot-cw body {
+    position: fixed; top: 0; left: 0;
+    width: 100vh !important; height: 100vw !important; min-height: 0 !important;
+    transform-origin: top left; overflow: hidden;
+  }
+  html.rot-ccw body { transform: translateY(100vh) rotate(-90deg); }  /* phone turned left  */
+  html.rot-cw  body { transform: translateX(100vw) rotate(90deg); }   /* phone turned right */
+
   /* ===== Views ===== */
   .view {
     position: absolute; inset: 0;
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--sat);
     display: none;
     flex-direction: column;
   }
@@ -66,19 +87,19 @@
 
   .scroll {
     flex: 1; overflow-y: auto;
-    padding: 0 18px calc(120px + env(safe-area-inset-bottom));
+    padding: 0 18px calc(120px + var(--sab));
     -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
   .empty-hint { color: #6a6a6e; font-size: 15px; text-align: center; margin-top: 60px; }
 
   /* ===== Stopwatch view ===== */
-  .timer-area { flex: 0 0 auto; margin-top: 17vh; display: flex; align-items: center; justify-content: center; }
+  .timer-area { flex: 0 0 auto; margin-top: calc(17 * var(--vh)); display: flex; align-items: center; justify-content: center; }
   #timer {
     font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
-    font-size: 22vw; font-weight: 100; line-height: 1; letter-spacing: -0.01em;
+    font-size: calc(22 * var(--vw)); font-weight: 100; line-height: 1; letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap;
   }
-  .controls { flex: 0 0 auto; margin-top: 10vh; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
+  .controls { flex: 0 0 auto; margin-top: calc(10 * var(--vh)); display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
   .btn {
     width: 86px; height: 86px; border-radius: 50%; border: none;
     font-size: 19px; font-weight: 400;
@@ -96,7 +117,7 @@
   .dots span.active { background: #fff; }
   .laps {
     flex: 1 1 auto; overflow-y: auto; margin: 22px 16px 0;
-    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    padding-bottom: calc(120px + var(--sab));
     border-top: 0.5px solid rgba(255,255,255,0.22);
     -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
@@ -155,9 +176,9 @@
   .tm-setup {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 24px;
     overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
-    padding: 6px 18px calc(120px + env(safe-area-inset-bottom));
+    padding: 6px 18px calc(120px + var(--sab));
   }
-  .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; padding-bottom: calc(120px + var(--sab)); }
   .tm-setup[hidden], .tm-run[hidden] { display: none; }
   .tm-controls { display: flex; justify-content: space-between; width: 100%; max-width: 360px; padding: 0 8px; }
   .tm-controls .btn { font-size: 15px; }
@@ -176,7 +197,7 @@
   .tm-setup.editing .recent-play { display: none; }
   .pill-btn { background: #2c2c2e; color: #fff; border: none; border-radius: 16px; padding: 6px 15px; font-size: 15px; cursor: pointer; }
   .vhead button.pill-btn { color: #fff; }
-  .tm-ring { position: relative; width: 78vw; max-width: 320px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+  .tm-ring { position: relative; width: calc(78 * var(--vw)); max-width: 320px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
   .tm-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
   .tm-ring .trk { fill: none; stroke: #2a2a2c; stroke-width: 7; }
   .tm-ring .prg { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; }
@@ -210,7 +231,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; justify-content: center;
     /* full-height document now reaches the real bottom; sit just above the edge */
-    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) * 0.18 + 4px);
+    padding: 0 12px calc(var(--sab) * 0.18 + 4px);
     /* extra nudge toward the bottom edge (tune this one number) */
     transform: translateY(2px);
   }
@@ -235,7 +256,7 @@
   .scroll, .laps, .wcol, .tm-setup, .sheet { overscroll-behavior: contain; }
   .sheet {
     width: 100%; background: #1c1c1e; border-radius: 16px 16px 0 0;
-    padding: 12px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 92%; overflow-y: auto;
+    padding: 12px 18px calc(20px + var(--sab)); max-height: 92%; overflow-y: auto;
   }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .sheet-head .t { font-size: 17px; font-weight: 600; }
@@ -898,6 +919,20 @@
     if (!onControl && now - lastTapEnd < 350 && e.touches.length === 0) e.preventDefault();
     lastTapEnd = now;
   }, { passive: false });
+
+  /* keep portrait: rotate the app back when the phone is in landscape */
+  function applyOrientation() {
+    var root = document.documentElement;
+    var landscape = window.innerWidth > window.innerHeight;
+    var a = typeof window.orientation === "number" ? window.orientation
+          : (screen.orientation && typeof screen.orientation.angle === "number" ? screen.orientation.angle : 90);
+    if (a === 270) a = -90;
+    root.classList.toggle("rot-ccw", landscape && a !== -90);
+    root.classList.toggle("rot-cw", landscape && a === -90);
+  }
+  applyOrientation();
+  window.addEventListener("resize", applyOrientation);
+  window.addEventListener("orientationchange", function () { applyOrientation(); setTimeout(applyOrientation, 150); setTimeout(applyOrientation, 500); });
 
   /* iOS: stop pinch-zoom gestures */
   document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
