@@ -856,11 +856,19 @@
   // initial render
   renderClock();
 
-  // scroll amount = 24px (document is real viewport + 24px)
-  function fitDoc() { document.body.style.minHeight = (window.innerHeight + 24) + "px"; }
+  // iOS (home-screen app) grows the usable height step by step to match the page height
+  // (793 → 817 → 841 …), stopping at a different step on each launch. Make the page exactly
+  // as tall as the physical screen from the start, so it expands fully in one go every time.
+  function fitDoc() {
+    var portrait = window.innerWidth <= window.innerHeight;
+    var full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    document.body.style.minHeight = Math.max(full, window.innerHeight) + "px";
+  }
   fitDoc();
   window.addEventListener("resize", fitDoc);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", fitDoc);
   window.addEventListener("orientationchange", function () { setTimeout(fitDoc, 120); });
+  [100, 300, 700, 1500].forEach(function (t) { setTimeout(fitDoc, t); });
 
   // The page itself never needs to scroll. iOS sometimes leaves it "stuck" pulled down
   // (negative scroll) after a double-tap, which pushes everything ~35px down and cuts
