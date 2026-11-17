@@ -192,6 +192,7 @@
     height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory;
     text-align: center; -webkit-overflow-scrolling: touch; touch-action: pan-y; scrollbar-width: none;
   }
+  #dbg { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 2px); left: 0; right: 0; text-align: center; font-size: 11px; color: #0c0; z-index: 100; pointer-events: none; white-space: pre; line-height: 1.4; }
   .wcol::-webkit-scrollbar { display: none; }
   .wcol .wi {
     height: 40px; line-height: 40px; scroll-snap-align: center; font-size: 24px;
@@ -295,6 +296,7 @@
 </style>
 </head>
 <body>
+  <div id="dbg"></div>
 
   <!-- ===== World Clock ===== -->
   <section id="view-clock" class="view">
@@ -872,6 +874,25 @@
 })();
 </script>
 <script>
+  /* --- diagnostic (temporary): viewport size at launch vs now, and where the tab bar sits --- */
+  (function () {
+    var el = document.getElementById("dbg");
+    var first = null;
+    function snap() {
+      var vv = window.visualViewport || { height: 0, offsetTop: 0 };
+      var bar = document.querySelector(".tabbar").getBoundingClientRect();
+      var probe = document.createElement("div");
+      probe.style.cssText = "position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;";
+      document.body.appendChild(probe);
+      var sab = Math.round(parseFloat(getComputedStyle(probe).paddingBottom) || 0);
+      document.body.removeChild(probe);
+      return "ih=" + window.innerHeight + " vvh=" + Math.round(vv.height) + " sh=" + screen.height +
+        " sab=" + sab + " barB=" + Math.round(bar.bottom) + " sy=" + Math.round(scrollY) + " bodyH=" + document.body.scrollHeight;
+    }
+    function show() { var now = snap(); if (!first) first = now; el.textContent = "起動時: " + first + "\n現在: " + now; }
+    show(); setInterval(show, 300);
+  })();
+
   /* iOS: the page itself must never be dragged; only these areas may scroll */
   var SCROLLABLE = ".scroll, .laps, .wcol, .tm-setup, .sheet";
   document.addEventListener("touchmove", function (e) {
